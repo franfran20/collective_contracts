@@ -1,66 +1,25 @@
-## Foundry
+# Things To Do Next
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+- Deploy CCIP Mocks
 
-Foundry consists of:
+- Clean up broken cc logic functions
+- test that the contract receives its intended token by doin the token contract .balanceOf to check
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- WHERE DID I STOP?
+  Novemeber 25th
+  Testing the break save function
+  Testing the withdraw succesfully function
+  Go back and review each function with appropriate tests where necessary and code clean up
 
-## Documentation
+  November 26th
+  Implement group saving functions and test accordingly
+  Arrange and setup deploy scripts for testnet
 
-https://book.getfoundry.sh/
+  Novemeber 27th - 30th
+  Build Frontend and hookup to local contracts for quick development
+  Deploy Contracts and perform live tests
+  Hook up to frontend
 
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+  Dec 1st
+  Video preparation
+  Submission
