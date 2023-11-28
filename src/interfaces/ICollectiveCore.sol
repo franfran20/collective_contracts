@@ -29,7 +29,8 @@ interface ICollectiveCore {
     error CollectiveCore__SaveCanBeWithdrawnSuccessfully();
     error CollectiveCore__UserDidNotMeetSavingsTarget();
     error CollectiveCore__ContractDoesntHaveSufficientUsdtToFulFillWithdrawal();
-    error CollectiveCore__CanotWithdrawOnThisChain();
+    error CollectiveCore__CannotWithdrawOnThisChain();
+    error CollectiveCore__CanOnlyWithdrawAnExistingSaving();
 
     event StartedSaving(
         address user,

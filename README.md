@@ -6,20 +6,13 @@
 - test that the contract receives its intended token by doin the token contract .balanceOf to check
 
 - WHERE DID I STOP?
-  Novemeber 25th
-  Testing the break save function
-  Testing the withdraw succesfully function
-  Go back and review each function with appropriate tests where necessary and code clean up
+  line 751 collectiveCoreAvalanche
+  make sure that the usdt balances and cross chain saving balance of the protocol are updated correctly on cross chain messaging
 
-  November 26th
-  Implement group saving functions and test accordingly
-  Arrange and setup deploy scripts for testnet
+  clean up funcitons and create, run final tests
 
-  Novemeber 27th - 30th
-  Build Frontend and hookup to local contracts for quick development
-  Deploy Contracts and perform live tests
-  Hook up to frontend
+  prepare deploy scripts for testnet and anvil
 
-  Dec 1st
-  Video preparation
-  Submission
+  prepare interaction scripts for testnet
+
+  build frontend with wagmi and rivet

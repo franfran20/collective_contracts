@@ -14,6 +14,8 @@ import {ICollectiveCore} from "../../src/interfaces/ICollectiveCore.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
+import {AggregatorV3Interface} from "@chainlink/contracts-ccip/src/v0.4/interfaces/AggregatorV3Interface.sol";
+
 /**
  * @notice Unit Tests For Collective Core Contracts
  * @dev Most cross chain tests are initiated from avalanche chain for local testing
@@ -27,6 +29,10 @@ contract CollectiveCoreUnitTest is Test {
     CollectiveCorePolygon public collectiveCorePolygon;
 
     address public USER_ONE = makeAddr("USER_ONE");
+    address public USER_TWO = makeAddr("USER_TWO");
+    address public USER_THREE = makeAddr("USER_THREE");
+    address public USER_FOUR = makeAddr("USER_FOUR");
+
     address public COSMIC_PROVIDER_ONE = makeAddr("COSMIC_PROVIDER_ONE");
 
     string constant SAVING_REASON = "To pay for my upcoming rent";
@@ -84,6 +90,33 @@ contract CollectiveCoreUnitTest is Test {
     }
 
     /**
+     * get the amount a pool is to be increased by
+     */
+    function _getAmountToIncreasePoolBy(uint256 usersSavingBalance, uint256 DEFAULT_FEE, address priceFeed)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 assetAmountTakenFromUser = (usersSavingBalance * DEFAULT_FEE) / 100;
+        (, int256 answer,,,) = AggregatorV3Interface(priceFeed).latestRoundData();
+        uint256 answerInEighteenDecimals = uint256(answer) * 10e10;
+        uint256 usdtTakenFromUser = (answerInEighteenDecimals * assetAmountTakenFromUser) / 10e18;
+        return usdtTakenFromUser;
+    }
+
+    /**
+     * get users amount refunded after fee has been collected
+     */
+    function _getUserAmountRefundedAfterSavingsBreak(uint256 usersSavingBalance, uint256 DEFAULT_FEE)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 expectedAmountRefunded = usersSavingBalance * (100 - DEFAULT_FEE) / 100;
+        return expectedAmountRefunded;
+    }
+
+    /**
      * @notice tops up users savings
      */
 
@@ -113,6 +146,12 @@ contract CollectiveCoreUnitTest is Test {
         vm.stopPrank();
     }
 
+    function _fulfillDefaultTargets(address user) internal {
+        _topUpUserSavings(user, SAVINGS_TARGET[0] - SAVINGS_AMOUNT, AVALANCHE_CHAIN_SELECTOR);
+        _topUpUserSavings(user, SAVINGS_TARGET[1], OPTIMISM_CHAIN_SELECTOR);
+        _topUpUserSavings(user, SAVINGS_TARGET[2], POLYGON_CHAIN_SELECTOR);
+    }
+
     // Other func to implement
     // deposit usdt
     // reedem usdt
@@ -126,13 +165,64 @@ contract CollectiveCoreUnitTest is Test {
     /////// RE-USERS ///////
     ////////////////////////
 
+    function _startSavingsAvax(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
+        internal
+    {
+        address asset = collectiveCoreAvalanche.s_wAVAX();
+        vm.startPrank(user);
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCoreAvalanche), amount);
+        collectiveCoreAvalanche.startSavings(asset, amount, savingTime, SAVING_REASON, savingsTarget);
+        vm.stopPrank();
+    }
+
+    function _startSavingsOptimism(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
+        internal
+    {
+        address asset = collectiveCoreOptimism.s_wOP();
+        vm.startPrank(user);
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCoreOptimism), amount);
+        collectiveCoreOptimism.startSavings(asset, amount, savingTime, SAVING_REASON, savingsTarget);
+        vm.stopPrank();
+    }
+
+    function _startSavingsPolygon(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
+        internal
+    {
+        address asset = collectiveCorePolygon.s_wMATIC();
+        vm.startPrank(user);
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCorePolygon), amount);
+        collectiveCorePolygon.startSavings(asset, amount, savingTime, SAVING_REASON, savingsTarget);
+        vm.stopPrank();
+    }
+
+    function _breakSavingsOnAvax(address user) internal {
+        vm.startPrank(user);
+        collectiveCoreAvalanche.breakSavings();
+        vm.stopPrank();
+    }
+
+    function _breakSavingsOnOptimism(address user) internal {
+        vm.startPrank(user);
+        collectiveCoreOptimism.breakSavings();
+        vm.stopPrank();
+    }
+
+    function _breakSavingsOnPolygon(address user) internal {
+        vm.startPrank(user);
+        collectiveCorePolygon.breakSavings();
+        vm.stopPrank();
+    }
+
     /**
      * @notice Succesfull start saving with wAVAX
      */
     modifier startSavingsWithAvax(address user) {
         address asset = collectiveCoreAvalanche.s_wAVAX();
         vm.startPrank(user);
-        _mintAssetToUser(USER_ONE, asset, SAVINGS_AMOUNT);
+        _mintAssetToUser(user, asset, SAVINGS_AMOUNT);
         MockERC20(asset).approve(address(collectiveCoreAvalanche), SAVINGS_AMOUNT);
         collectiveCoreAvalanche.startSavings(
             collectiveCoreAvalanche.s_wAVAX(), SAVINGS_AMOUNT, SAVING_TIME, SAVING_REASON, SAVINGS_TARGET
@@ -147,7 +237,7 @@ contract CollectiveCoreUnitTest is Test {
     modifier startSavingsWithOptimsim(address user) {
         address asset = collectiveCoreOptimism.s_wOP();
         vm.startPrank(user);
-        _mintAssetToUser(USER_ONE, asset, SAVINGS_AMOUNT);
+        _mintAssetToUser(user, asset, SAVINGS_AMOUNT);
         MockERC20(asset).approve(address(collectiveCoreOptimism), SAVINGS_AMOUNT);
         collectiveCoreOptimism.startSavings(
             collectiveCoreOptimism.s_wOP(), SAVINGS_AMOUNT, SAVING_TIME, SAVING_REASON, SAVINGS_TARGET
@@ -162,7 +252,7 @@ contract CollectiveCoreUnitTest is Test {
     modifier startSavingsWithPolygon(address user) {
         address asset = collectiveCorePolygon.s_wMATIC();
         vm.startPrank(user);
-        _mintAssetToUser(USER_ONE, asset, SAVINGS_AMOUNT);
+        _mintAssetToUser(user, asset, SAVINGS_AMOUNT);
         MockERC20(asset).approve(address(collectiveCorePolygon), SAVINGS_AMOUNT);
         collectiveCorePolygon.startSavings(
             collectiveCorePolygon.s_wMATIC(), SAVINGS_AMOUNT, SAVING_TIME, SAVING_REASON, SAVINGS_TARGET

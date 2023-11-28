@@ -10,6 +10,7 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {LinkTokenInterface} from "@chainlink/contracts-ccip/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts-ccip/src/v0.4/interfaces/AggregatorV3Interface.sol";
 
 // oz's imports
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -56,6 +57,13 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
     address public s_usdt;
 
     /**
+     * @notice priceFeedAddresses
+     */
+    address public s_avaxPriceFeed;
+    address public s_opEthPriceFeed;
+    address public s_maticPriceFeed;
+
+    /**
      * @dev the contract Addresses of the collective contract on the avalanche and optimism network.
      */
     address private s_avalancheContractAddress;
@@ -65,9 +73,11 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      * @dev The chain selectors specified by chainlink for the following chains.
      * see https://docs.chain.link/ccip/supported-networks#overview for more details
      */
-    uint64 s_avalancheChainSelector;
-    uint64 s_optimismChainSelector;
-    uint64 s_polygonChainSelector;
+    uint64 s_avalancheChainSelector = 14767482510784806043;
+    uint64 s_optimismChainSelector = 2664363617261496610;
+    uint64 s_polygonChainSelector = 12532609583862916517;
+
+    uint256 public constant BUFFER_AMOUNT = 95;
 
     // @notice unlock period for withdrawal after depositing usdt as a CP
     uint256 constant UNLOCK_PERIOD = 3 hours;
@@ -101,17 +111,14 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      * @param asset The address of t wrapped MMATIC token
      * @param router The address of the ccip router on Avalanche
      * @param link The address of the link token on Avalanche
-     * @param avalancheChainSelector The avalanche chain selector specified by chainlink ccip
-     * @param optimismChainSelector The avalanche chain selector specified by chainlink ccip
-     * @param polygonChainSelector The avalanche chain selector specified by chainlink ccip
      */
     constructor(
         address asset,
         address router,
         address link,
-        uint64 avalancheChainSelector,
-        uint64 optimismChainSelector,
-        uint64 polygonChainSelector,
+        address avaxPriceFeed,
+        address opEthPriceFeed,
+        address maticPriceFeed,
         address usdt,
         address franfranSwap
     ) Ownable(msg.sender) CCIPReceiver(router) {
@@ -123,9 +130,9 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
         s_linkToken = LinkTokenInterface(link);
         s_usdt = usdt;
 
-        s_avalancheChainSelector = avalancheChainSelector;
-        s_optimismChainSelector = optimismChainSelector;
-        s_polygonChainSelector = polygonChainSelector;
+        s_avaxPriceFeed = avaxPriceFeed;
+        s_opEthPriceFeed = opEthPriceFeed;
+        s_maticPriceFeed = maticPriceFeed;
 
         s_franfranSwap = FranFranSwap(franfranSwap);
     }
@@ -252,9 +259,15 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      * @notice checks if the user can break their save
      */
     function breakSavings() external checkUserCanBreakSave(msg.sender) {
-        _breakSavings(msg.sender);
+        uint256 userSavingTime =
+            s_savingsDetails[msg.sender].savingsEndTime - s_savingsDetails[msg.sender].savingsStartTime;
+        s_totalExpectedSaveTime -= userSavingTime;
 
-        bytes memory innerPayload = abi.encode("Nothing");
+        (uint256 interestToAddToPool, uint256 avaxBufferAmount, uint256 opBufferAmount) = _breakSavings(msg.sender);
+        uint256 maticBufferAmountNotInUse = 0;
+
+        bytes memory innerPayload =
+            abi.encode(interestToAddToPool, avaxBufferAmount, opBufferAmount, maticBufferAmountNotInUse);
         bytes memory encodedPayload = abi.encode(s_breakSavingsPath, innerPayload, s_avalancheChainSelector, msg.sender);
 
         _sendCrossChainMessage(s_avalancheContractAddress, encodedPayload, s_avalancheChainSelector);
@@ -263,7 +276,7 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
 
     function withdrawSavings() external checkUserCanWithdrawSuccesfully(msg.sender) {
         if (s_savingsDetails[msg.sender].withdrawalChainSelector != s_polygonChainSelector) {
-            revert CollectiveCore__CanotWithdrawOnThisChain();
+            revert CollectiveCore__CannotWithdrawOnThisChain();
         }
 
         uint256 usersShareInInterestPool = getUsersShareInInterestPool(msg.sender);
@@ -450,27 +463,57 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      * @notice internal function that checks if theres an interest to be collected on this chain and goes ahead to break the savings
      * @param user The address of the user wishing to break their save.
      */
-    function _breakSavings(address user) internal {
+    function _breakSavings(address user) internal returns (uint256, uint256, uint256) {
         //
         ICollectiveCore.CrossChainAssets memory userSavingBalance = getUserSavingsDetails(user).savingsBalance;
 
         uint256 interestToAddToPool;
+        uint256 avaxBufferAmount;
+        uint256 opBufferAmount;
+
         if (userSavingBalance.wMATIC > 0) {
             // get amount to transfer user and amount protocol would take
-            uint256 opEthTakenFromUser = userSavingBalance.wMATIC * (POLYGON_DEFAULT_FEE / 100);
-            uint256 opEthToGiveUser = userSavingBalance.wMATIC * ((100 - POLYGON_DEFAULT_FEE) / 100);
+            uint256 opEthTakenFromUser = (userSavingBalance.wMATIC * POLYGON_DEFAULT_FEE) / 100;
+            uint256 opEthToGiveUser = (userSavingBalance.wMATIC * (100 - POLYGON_DEFAULT_FEE)) / 100;
 
             // approve tokens for protocol for swap to usdt
             IERC20(s_wMATIC).approve(address(s_franfranSwap), opEthTakenFromUser);
-            interestToAddToPool = s_franfranSwap.swapForUSDT(s_wMATIC, opEthToGiveUser);
+            interestToAddToPool = s_franfranSwap.swapForUSDT(s_wMATIC, opEthTakenFromUser);
 
             // transfer user the amount user has after fee taken
             IERC20(s_wMATIC).transfer(user, opEthToGiveUser);
 
             // increase the interest pool balance
             s_interestPoolBalance += interestToAddToPool;
+            s_UsdtBalances.Polygon += interestToAddToPool;
         }
+
+        if (userSavingBalance.wAVAX > 0) {
+            uint256 avaxTakenFromUser = (userSavingBalance.wAVAX * OPTIMISM_DEFAULT_FEE) / 100;
+            (, int256 answer,,,) = AggregatorV3Interface(s_avaxPriceFeed).latestRoundData();
+            uint256 answerInEighteenDecimals = uint256(answer) * 10e10;
+            uint256 estimatedAvaxToBeTakenAsUsdtFromUser = (answerInEighteenDecimals * avaxTakenFromUser) / 10e18;
+            avaxBufferAmount = (BUFFER_AMOUNT * estimatedAvaxToBeTakenAsUsdtFromUser) / 100;
+
+            s_interestPoolBalance += interestToAddToPool;
+            s_UsdtBalances.Avalanche += avaxBufferAmount;
+        }
+
+        if (userSavingBalance.wOP > 0) {
+            uint256 opEthTakenFromUser = (userSavingBalance.wOP * OPTIMISM_DEFAULT_FEE) / 100;
+            (, int256 answer,,,) = AggregatorV3Interface(s_opEthPriceFeed).latestRoundData();
+            uint256 answerInEighteenDecimals = uint256(answer) * 10e10;
+            uint256 estimatedOptimismEthToBeTakenAsUsdtFromUser =
+                (answerInEighteenDecimals * opEthTakenFromUser) / 10e18;
+            opBufferAmount = (BUFFER_AMOUNT * estimatedOptimismEthToBeTakenAsUsdtFromUser) / 100;
+
+            s_interestPoolBalance += interestToAddToPool;
+            s_UsdtBalances.Optimism += avaxBufferAmount;
+        }
+
         _resetUserSavingsDetails(user);
+
+        return (interestToAddToPool, avaxBufferAmount, opBufferAmount);
     }
 
     /**
@@ -492,6 +535,8 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
         s_savingsDetails[user].savingsTarget.wAVAX = 0;
         s_savingsDetails[user].savingsTarget.wOP = 0;
         s_savingsDetails[user].savingsTarget.wMATIC = 0;
+
+        s_savingsDetails[user].withdrawalChainSelector = 0;
     }
 
     /**
@@ -646,8 +691,46 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      * @notice handles executing the break savings function
      * @param user address of the user
      */
-    function _handleBreakSavingsMessagePath(address user, bytes memory, uint64) internal {
-        _breakSavings(user);
+    function _handleBreakSavingsMessagePath(address user, bytes memory breakSavingsPayload, uint64 sourceChainSelector)
+        internal
+    {
+        (
+            uint256 interestAddedToSourcePool,
+            uint256 avaxBufferAmount,
+            uint256 opBufferAmount,
+            uint256 maticBufferAmount,
+            uint256 newTotalExpectedSaveTime
+        ) = abi.decode(breakSavingsPayload, (uint256, uint256, uint256, uint256, uint256));
+
+        s_totalExpectedSaveTime = newTotalExpectedSaveTime;
+        s_interestPoolBalance += interestAddedToSourcePool + avaxBufferAmount + opBufferAmount + maticBufferAmount;
+        ICollectiveCore.CrossChainAssets memory userSavingBalance = getUserSavingsDetails(user).savingsBalance;
+
+        if (userSavingBalance.wMATIC > 0) {
+            // get amount to transfer user and amount protocol would take
+            uint256 maticTakenFromUser = (userSavingBalance.wMATIC * POLYGON_DEFAULT_FEE) / 100;
+            uint256 maticToGiveUser = (userSavingBalance.wMATIC * (100 - POLYGON_DEFAULT_FEE)) / 100;
+
+            // approve tokens for protocol for swap to usdt
+            IERC20(s_wMATIC).approve(address(s_franfranSwap), maticTakenFromUser);
+            s_franfranSwap.swapForUSDT(s_wMATIC, maticTakenFromUser);
+
+            s_UsdtBalances.Polygon += maticBufferAmount;
+
+            // transfer user the amount user has after fee taken
+            IERC20(s_wMATIC).transfer(user, maticToGiveUser);
+        }
+
+        _resetUserSavingsDetails(user);
+
+        if (sourceChainSelector == s_avalancheChainSelector) {
+            s_UsdtBalances.Avalanche += interestAddedToSourcePool;
+            s_UsdtBalances.Optimism += opBufferAmount;
+        }
+        if (sourceChainSelector == s_optimismChainSelector) {
+            s_UsdtBalances.Optimism += interestAddedToSourcePool;
+            s_UsdtBalances.Avalanche += avaxBufferAmount;
+        }
     }
 
     function _handleWithdrawSavingsMessagePath(address saver, bytes memory withdrawSavingsPayload, uint64) internal {
@@ -670,6 +753,22 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
     ///// GETTER FUNCTIONSS ////////
     ///////////////////////////
 
+    function getInterestPoolBalance() public view returns (uint256) {
+        return s_interestPoolBalance;
+    }
+
+    function getTotalExpectedSaveTime() public view returns (uint256) {
+        return s_totalExpectedSaveTime;
+    }
+
+    function getTotalChainSavings() public view returns (CrossChainAssets memory) {
+        return s_totalChainSavings;
+    }
+
+    function getUserSavingTime(address user) public view returns (uint256) {
+        return s_savingsDetails[user].savingsEndTime - s_savingsDetails[user].savingsStartTime;
+    }
+
     /**
      * @notice gets the users share in the cross chain interest pool
      */
@@ -677,7 +776,7 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
         if (s_savingsDetails[user].status) {
             uint256 userSavingTime = s_savingsDetails[user].savingsEndTime - s_savingsDetails[user].savingsStartTime;
 
-            uint256 usersInterestShare = (userSavingTime / s_totalExpectedSaveTime) * s_interestPoolBalance;
+            uint256 usersInterestShare = (userSavingTime * s_interestPoolBalance) / s_totalExpectedSaveTime;
             return usersInterestShare;
         } else {
             return 0;
@@ -706,6 +805,10 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
      */
     function getUserSavingStatus(address user) public view returns (bool) {
         return s_savingsDetails[user].status;
+    }
+
+    function getUserSavingBalance(address user) public view returns (ICollectiveCore.CrossChainAssets memory) {
+        return s_savingsDetails[user].savingsBalance;
     }
 
     /**
@@ -818,7 +921,7 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver, Ownable {
 
     modifier checkUserCanWithdrawSuccesfully(address user) {
         if (!getUserSavingsDetails(user).status) {
-            revert CollectiveCore__CanOnlyBreakAnExistingSaving();
+            revert CollectiveCore__CanOnlyWithdrawAnExistingSaving();
         }
         if (block.timestamp < getUserSavingsDetails(user).savingsEndTime) {
             revert CollectiveCore__WithdrawalTimeHasntArrived();

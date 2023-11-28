@@ -60,20 +60,21 @@ contract DeployCollectiveCore is Script {
     function _deployToAnvil(HelperConfig helperConfig) internal returns (address, address, address) {
         vm.startBroadcast();
         HelperConfig.MockContracts memory mockContracts = helperConfig.getAnvilDeploymentParams();
+        (address aPriceFeedMock, address oPriceFeedMock, address pPriceFeedMock) = helperConfig.anvilPriceFeedMocks();
 
         (address aFranFranSwap, address oFranFranSwap, address pFranFranSwap) = helperConfig.getSwapContracts();
 
         console.log("Deployinging Collectove Core Contract Avalanche...");
         CollectiveCoreAvalanche collectiveCoreAvalanche =
-        new CollectiveCoreAvalanche(mockContracts.wAVAX, mockContracts.router, mockContracts.aLink, AVALANCHE_CHAIN_SELECTOR, OPTIMISM_CHAIN_SELECTOR, POLYGON_CHAIN_SELECTOR, mockContracts.aUsdt, aFranFranSwap);
+        new CollectiveCoreAvalanche(mockContracts.wAVAX, mockContracts.router, mockContracts.aLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.aUsdt, aFranFranSwap);
 
         console.log("Deployinging Collectove Core Contract Optimism...");
         CollectiveCoreOptimism collectiveCoreOptimism =
-        new CollectiveCoreOptimism(mockContracts.wOP, mockContracts.router, mockContracts.oLink, AVALANCHE_CHAIN_SELECTOR, OPTIMISM_CHAIN_SELECTOR, POLYGON_CHAIN_SELECTOR, mockContracts.oUsdt, oFranFranSwap);
+        new CollectiveCoreOptimism(mockContracts.wOP, mockContracts.router, mockContracts.oLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.oUsdt, oFranFranSwap);
 
         console.log("Deployinging Collectove Core Contract Polygon...");
         CollectiveCorePolygon collectiveCorePolygon =
-        new CollectiveCorePolygon(mockContracts.wMATIC, mockContracts.router, mockContracts.pLink, AVALANCHE_CHAIN_SELECTOR, OPTIMISM_CHAIN_SELECTOR, POLYGON_CHAIN_SELECTOR, mockContracts.pUsdt, pFranFranSwap);
+        new CollectiveCorePolygon(mockContracts.wMATIC, mockContracts.router, mockContracts.pLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.pUsdt, pFranFranSwap);
 
         vm.stopBroadcast();
 

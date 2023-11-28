@@ -31,8 +31,23 @@ contract FranFranSwap {
         (, int256 answer,,,) = priceFeed.latestRoundData();
         uint256 answerIn18Decimals = uint256(answer) * 10e10;
 
-        MockERC20(usdt).mint(msg.sender, answerIn18Decimals);
+        uint256 amountToGiveOut = (assetAmount * answerIn18Decimals) / 10e18;
 
-        return answerIn18Decimals;
+        MockERC20(usdt).mint(msg.sender, amountToGiveOut);
+
+        return amountToGiveOut;
+    }
+
+    function getEstimatedSwapAmount(address asset, uint256 assetAmount) public view returns (uint256) {
+        if (asset != supportedAsset) {
+            revert("Unsupported Asset!");
+        }
+
+        (, int256 answer,,,) = priceFeed.latestRoundData();
+        uint256 answerIn18Decimals = uint256(answer) * 10e10;
+
+        uint256 amountToGiveOut = (assetAmount * answerIn18Decimals) / 10e18;
+
+        return amountToGiveOut;
     }
 }

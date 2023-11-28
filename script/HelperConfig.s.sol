@@ -12,8 +12,8 @@ import {MockV3Aggregator} from "@chainlink/contracts-ccip/src/v0.8/tests/MockV3A
 
 contract HelperConfig is Script {
     uint8 constant DECIMALS = 8;
-    int256 constant AVAX_INITIAL_ANSWER = 20e8;
-    int256 constant OP_INITIAL_ANSWER = 10e8;
+    int256 constant AVAX_INITIAL_ANSWER = 10e8;
+    int256 constant OP_INITIAL_ANSWER = 15e8;
     int256 constant MATIC_INITIAL_ANSWER = 5e8;
 
     /**
@@ -76,6 +76,7 @@ contract HelperConfig is Script {
      */
     NetworkConfig public activeNetworkConfig;
     AnvilNetworkConfig public activeAnvilNetworkConfig;
+    PriceFeedMocks public anvilPriceFeedMocks;
 
     constructor() {
         if (block.chainid == 31337) {
@@ -191,6 +192,8 @@ contract HelperConfig is Script {
         MockV3Aggregator aPricFeedMock = new MockV3Aggregator(DECIMALS, AVAX_INITIAL_ANSWER);
         MockV3Aggregator oPricFeedMock = new MockV3Aggregator(DECIMALS, OP_INITIAL_ANSWER);
         MockV3Aggregator pPricFeedMock = new MockV3Aggregator(DECIMALS, MATIC_INITIAL_ANSWER);
+
+        anvilPriceFeedMocks = PriceFeedMocks(address(aPricFeedMock), address(oPricFeedMock), address(pPricFeedMock));
 
         console.log("Deploying franfran swap contracts...");
         FranFranSwap aFranFranSwap = new FranFranSwap(address(aPricFeedMock), mockContracts.aUsdt, mockContracts.wAVAX);
