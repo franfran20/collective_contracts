@@ -64,17 +64,20 @@ contract DeployCollectiveCore is Script {
 
         (address aFranFranSwap, address oFranFranSwap, address pFranFranSwap) = helperConfig.getSwapContracts();
 
-        console.log("Deployinging Collectove Core Contract Avalanche...");
+        
         CollectiveCoreAvalanche collectiveCoreAvalanche =
         new CollectiveCoreAvalanche(mockContracts.wAVAX, mockContracts.router, mockContracts.aLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.aUsdt, aFranFranSwap);
+        console.log("Deployed collective Core Avalanche: ", address(collectiveCoreAvalanche));
 
-        console.log("Deployinging Collectove Core Contract Optimism...");
+        
         CollectiveCoreOptimism collectiveCoreOptimism =
         new CollectiveCoreOptimism(mockContracts.wOP, mockContracts.router, mockContracts.oLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.oUsdt, oFranFranSwap);
+console.log("Deployed collective Core Optimism: ", address(collectiveCoreOptimism));
 
-        console.log("Deployinging Collectove Core Contract Polygon...");
+
         CollectiveCorePolygon collectiveCorePolygon =
         new CollectiveCorePolygon(mockContracts.wMATIC, mockContracts.router, mockContracts.pLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.pUsdt, pFranFranSwap);
+        console.log("Deployed collective Core Polygon: ", address(collectiveCorePolygon));
 
         vm.stopBroadcast();
 

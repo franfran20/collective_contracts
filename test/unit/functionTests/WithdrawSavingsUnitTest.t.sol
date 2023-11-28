@@ -135,17 +135,48 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         vm.stopPrank();
 
         uint256 intrestPoolBalAfterWithdrawal = collectiveCoreAvalanche.getInterestPoolBalance();
-        uint256 avalancheUsdtBalanceAfterWithdrawal = collectiveCoreAvalanche.getUsdtBalances().Avalanche;
+        uint256 avalancheUsdtBalanceAfterWithdrawal = collectiveCoreOptimism.getUsdtBalances().Avalanche;
 
         ICollectiveCore.CrossChainAssets memory totalChainSavingsAfterWithdrawal =
             collectiveCoreOptimism.getTotalChainSavings();
 
-        // assertEq(intrestPoolBalAfterWithdrawal, interestPoolBalanceBeforeWithdrawal - userInterestShare);
-        // assertEq(avalancheUsdtBalanceAfterWithdrawal, avalancheUsdtBalance - userInterestShare);
+        assertEq(intrestPoolBalAfterWithdrawal, interestPoolBalanceBeforeWithdrawal - userInterestShare);
+        assertEq(avalancheUsdtBalanceAfterWithdrawal, avalancheUsdtBalance - userInterestShare);
 
         assertEq(totalChainSavingsAfterWithdrawal.wAVAX, totalChainSavingsBeforeWithdrawal.wAVAX - SAVINGS_TARGET[0]);
-        // assertEq(totalChainSavingsBeforeWithdrawal.wOP, totalChainSavingsAfterWithdrawal.wOP - SAVINGS_TARGET[1]);
-        // assertEq(totalChainSavingsBeforeWithdrawal.wMATIC, totalChainSavingsAfterWithdrawal.wMATIC - SAVINGS_TARGET[2]);
+        assertEq(totalChainSavingsAfterWithdrawal.wOP, totalChainSavingsBeforeWithdrawal.wOP - SAVINGS_TARGET[1]);
+        assertEq(totalChainSavingsAfterWithdrawal.wMATIC, totalChainSavingsBeforeWithdrawal.wMATIC - SAVINGS_TARGET[2]);
+    }
+
+    function testWithdrawSavingsResetsUsersSavingDetails() public startSavingsWithAvax(USER_ONE) {
+        // fulfil targets
+        _fulfillDefaultTargets(USER_ONE);
+        _depositUSTDToContractsAsCosmicProvider();
+        vm.warp(block.timestamp + SAVING_TIME + 1);
+
+        _generateInterestInPool(1 ether, 1.5 ether, 0.9 ether);
+
+        vm.startPrank(USER_ONE);
+        collectiveCoreAvalanche.withdrawSavings();
+        vm.stopPrank();
+
+        ICollectiveCore.SavingDetails memory userSavingDetails = collectiveCorePolygon.getUserSavingsDetails(USER_ONE);
+
+        assertEq(userSavingDetails.status, false);
+
+        assertEq(userSavingDetails.savingsStartTime, 0);
+        assertEq(userSavingDetails.savingsEndTime, 0);
+
+        assertEq(userSavingDetails.savingsBalance.wAVAX, 0);
+        assertEq(userSavingDetails.savingsBalance.wOP, 0);
+        assertEq(userSavingDetails.savingsBalance.wMATIC, 0);
+
+        assertEq(userSavingDetails.savingsTarget.wAVAX, 0);
+        assertEq(userSavingDetails.savingsTarget.wOP, 0);
+        assertEq(userSavingDetails.savingsTarget.wMATIC, 0);
+
+        assertEq(userSavingDetails.reason, "");
+        assertEq(userSavingDetails.withdrawalChainSelector, 0);
     }
 
     ////////////////////////////////////////

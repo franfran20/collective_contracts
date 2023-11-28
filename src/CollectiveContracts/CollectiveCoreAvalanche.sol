@@ -289,16 +289,19 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver, Ownable {
 
         if (usersShareInInterestPool > 0) IERC20(s_usdt).transfer(msg.sender, usersShareInInterestPool);
 
-        uint256 usersChainBalance = s_savingsDetails[msg.sender].savingsBalance.wAVAX;
-        if (usersChainBalance > 0) IERC20(s_wAVAX).transfer(msg.sender, usersChainBalance);
+        CrossChainAssets memory usersChainBalance = s_savingsDetails[msg.sender].savingsBalance;
+        if (usersChainBalance.wAVAX > 0) IERC20(s_wAVAX).transfer(msg.sender, usersChainBalance.wAVAX);
 
         s_interestPoolBalance -= usersShareInInterestPool;
         s_UsdtBalances.Avalanche -= usersShareInInterestPool;
-        s_totalChainSavings.wAVAX -= usersChainBalance;
+
+        s_totalChainSavings.wAVAX -= usersChainBalance.wAVAX;
+        s_totalChainSavings.wOP -= usersChainBalance.wOP;
+        s_totalChainSavings.wMATIC -= usersChainBalance.wMATIC;
 
         _resetUserSavingsDetails(msg.sender);
 
-        bytes memory innerPayload = abi.encode(usersShareInInterestPool);
+        bytes memory innerPayload = abi.encode(s_UsdtBalances.Avalanche, s_interestPoolBalance);
         bytes memory encodedPayload =
             abi.encode(s_withdrawSavingsPath, innerPayload, s_avalancheChainSelector, msg.sender);
 
@@ -739,19 +742,31 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver, Ownable {
         }
     }
 
-    function _handleWithdrawSavingsMessagePath(address saver, bytes memory withdrawSavingsPayload, uint64) internal {
-        uint256 usersShareInInterestPool = abi.decode(withdrawSavingsPayload, (uint256));
+    function _handleWithdrawSavingsMessagePath(
+        address saver,
+        bytes memory withdrawSavingsPayload,
+        uint64 sourceChainSelector
+    ) internal {
+        (uint256 updatedUsdtBalancesFromSourceChain, uint256 interestPoolBalance) =
+            abi.decode(withdrawSavingsPayload, (uint256, uint256));
 
-        // transfer them their balance of this chain
-        uint256 userBalanceOnThisChain = s_savingsDetails[saver].savingsBalance.wAVAX;
-        if (userBalanceOnThisChain > 0) {
-            IERC20(s_wAVAX).transfer(saver, userBalanceOnThisChain);
+        s_interestPoolBalance = interestPoolBalance;
+
+        if (sourceChainSelector == s_optimismChainSelector) {
+            s_UsdtBalances.Optimism = updatedUsdtBalancesFromSourceChain;
+        }
+        if (sourceChainSelector == s_polygonChainSelector) {
+            s_UsdtBalances.Polygon = updatedUsdtBalancesFromSourceChain;
         }
 
-        // stopped here!!!
-        s_interestPoolBalance -= usersShareInInterestPool;
-        s_UsdtBalances.Avalanche -= usersShareInInterestPool;
-        s_totalChainSavings.wAVAX -= userBalanceOnThisChain;
+        CrossChainAssets memory userBalances = s_savingsDetails[saver].savingsBalance;
+        if (userBalances.wAVAX > 0) {
+            IERC20(s_wAVAX).transfer(saver, userBalances.wAVAX);
+        }
+
+        s_totalChainSavings.wAVAX -= userBalances.wAVAX;
+        s_totalChainSavings.wOP -= userBalances.wOP;
+        s_totalChainSavings.wMATIC -= userBalances.wMATIC;
 
         _resetUserSavingsDetails(saver);
     }

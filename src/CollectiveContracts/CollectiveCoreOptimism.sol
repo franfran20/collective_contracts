@@ -289,17 +289,21 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver, Ownable {
 
         if (usersShareInInterestPool > 0) IERC20(s_usdt).transfer(msg.sender, usersShareInInterestPool);
 
-        uint256 usersChainBalance = s_savingsDetails[msg.sender].savingsBalance.wOP;
-        if (usersChainBalance > 0) IERC20(s_wOP).transfer(msg.sender, usersChainBalance);
+        CrossChainAssets memory usersChainBalance = s_savingsDetails[msg.sender].savingsBalance;
+        if (usersChainBalance.wOP > 0) IERC20(s_wOP).transfer(msg.sender, usersChainBalance.wOP);
 
         s_interestPoolBalance -= usersShareInInterestPool;
         s_UsdtBalances.Avalanche -= usersShareInInterestPool;
-        s_totalChainSavings.wOP -= usersChainBalance;
+
+        s_totalChainSavings.wAVAX -= usersChainBalance.wAVAX;
+        s_totalChainSavings.wOP -= usersChainBalance.wOP;
+        s_totalChainSavings.wMATIC -= usersChainBalance.wMATIC;
 
         _resetUserSavingsDetails(msg.sender);
 
-        bytes memory innerPayload = abi.encode(usersShareInInterestPool);
-        bytes memory encodedPayload = abi.encode(s_breakSavingsPath, innerPayload, s_optimismChainSelector, msg.sender);
+        bytes memory innerPayload = abi.encode(s_UsdtBalances.Avalanche, s_interestPoolBalance);
+        bytes memory encodedPayload =
+            abi.encode(s_withdrawSavingsPath, innerPayload, s_optimismChainSelector, msg.sender);
 
         _sendCrossChainMessage(s_avalancheContractAddress, encodedPayload, s_avalancheChainSelector);
         _sendCrossChainMessage(s_polygonContractAddress, encodedPayload, s_polygonChainSelector);
@@ -731,18 +735,31 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver, Ownable {
         }
     }
 
-    function _handleWithdrawSavingsMessagePath(address saver, bytes memory withdrawSavingsPayload, uint64) internal {
-        uint256 usersShareInInterestPool = abi.decode(withdrawSavingsPayload, (uint256));
+    function _handleWithdrawSavingsMessagePath(
+        address saver,
+        bytes memory withdrawSavingsPayload,
+        uint64 sourceChainSelector
+    ) internal {
+        (uint256 updatedUsdtBalancesFromSourceChain, uint256 interestPoolBalance) =
+            abi.decode(withdrawSavingsPayload, (uint256, uint256));
 
-        // transfer them their balance of this chain
-        uint256 userBalanceOnThisChain = s_savingsDetails[saver].savingsBalance.wOP;
-        if (userBalanceOnThisChain > 0) {
-            IERC20(s_wOP).transfer(saver, userBalanceOnThisChain);
+        s_interestPoolBalance = interestPoolBalance;
+
+        if (sourceChainSelector == s_avalancheChainSelector) {
+            s_UsdtBalances.Avalanche = updatedUsdtBalancesFromSourceChain;
+        }
+        if (sourceChainSelector == s_polygonChainSelector) {
+            s_UsdtBalances.Polygon = updatedUsdtBalancesFromSourceChain;
         }
 
-        s_interestPoolBalance -= usersShareInInterestPool;
-        s_UsdtBalances.Optimism -= usersShareInInterestPool;
-        s_totalChainSavings.wOP -= userBalanceOnThisChain;
+        CrossChainAssets memory userBalances = s_savingsDetails[saver].savingsBalance;
+        if (userBalances.wOP > 0) {
+            IERC20(s_wOP).transfer(saver, userBalances.wOP);
+        }
+
+        s_totalChainSavings.wAVAX -= userBalances.wAVAX;
+        s_totalChainSavings.wOP -= userBalances.wOP;
+        s_totalChainSavings.wMATIC -= userBalances.wMATIC;
 
         _resetUserSavingsDetails(saver);
     }
@@ -759,10 +776,9 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver, Ownable {
         return s_totalExpectedSaveTime;
     }
 
-     function getTotalChainSavings() public view returns (CrossChainAssets memory) {
+    function getTotalChainSavings() public view returns (CrossChainAssets memory) {
         return s_totalChainSavings;
     }
-
 
     function getUserSavingTime(address user) public view returns (uint256) {
         return s_savingsDetails[user].savingsEndTime - s_savingsDetails[user].savingsStartTime;
