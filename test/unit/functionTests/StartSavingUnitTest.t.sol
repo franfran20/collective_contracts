@@ -87,6 +87,21 @@ contract StartSavingUnitTest is CollectiveCoreUnitTest {
         assertEq(savingsDetails.savingsBalance.wMATIC, 0);
     }
 
+    function testStartSavingsUpdatesTotalTimeSavedTotalSaversAndAmountSavedPerChain()
+        public
+        startSavingsWithAvax(USER_ONE)
+        startSavingsWithPolygon(USER_TWO)
+    {
+        ICollectiveCore.CrossChainAssets memory totalChainSavings = collectiveCorePolygon.getTotalChainSavings();
+        uint256 totalExpectedSaveTime = collectiveCorePolygon.getTotalExpectedSaveTime();
+        uint256 totalSavers = collectiveCorePolygon.getTotalChainSavers();
+
+        assertEq(totalChainSavings.wAVAX, SAVINGS_AMOUNT);
+        assertEq(totalChainSavings.wMATIC, SAVINGS_AMOUNT);
+        assertEq(totalExpectedSaveTime, (SAVING_TIME * 2));
+        assertEq(totalSavers, 2);
+    }
+
     function testStartSavingsUpdatesSavingsDetailsOnOptimismFromAvalanche() public startSavingsWithAvax(USER_ONE) {
         (ICollectiveCore.SavingDetails memory savingsDetails) = collectiveCoreOptimism.getUserSavingsDetails(USER_ONE);
         assertEq(savingsDetails.status, true);

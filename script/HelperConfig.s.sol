@@ -16,10 +16,19 @@ contract HelperConfig is Script {
     int256 constant OP_INITIAL_ANSWER = 15e8;
     int256 constant MATIC_INITIAL_ANSWER = 5e8;
 
-    /**
-     * @notice network config for chains other than anvil
-     */
+    // LIVE NETWORK CONFIG
+    struct LiveNetworkConfig {
+        address wrappedAsset;
+        address router;
+        address link;
+        address avaxUsdPriceFeed;
+        address opEthUsdPriceFeed;
+        address maticUsdPriceFeed;
+        address usdt;
+        address franfranSwap;
+    }
 
+    // ANVIL STRUCTS
     struct NetworkConfig {
         address asset;
         address router;
@@ -28,18 +37,12 @@ contract HelperConfig is Script {
         address franfranSwap;
     }
 
-    /**
-     * @notice network config for anvil chain for cross chain testing
-     */
     struct AnvilNetworkConfig {
         NetworkConfig avalancheNetworkConfig;
         NetworkConfig optimismNetworkConfig;
         NetworkConfig polygonNetworkConfig;
     }
 
-    /**
-     * @notice all mock contracts required for cross chgain testiing
-     */
     struct MockContracts {
         address wAVAX;
         address wOP;
@@ -53,43 +56,118 @@ contract HelperConfig is Script {
         address pUsdt;
     }
 
-    /**
-     * @notice all the mock swap contract addresses
-     */
     struct SwapContracts {
         address aFranFranSwap;
         address oFranFranSwap;
         address pFranFranSwap;
     }
 
-    /**
-     * @notice Aggregator V3 Mocks
-     */
     struct PriceFeedMocks {
         address aPriceFeedMock;
         address oPriceFeedMock;
         address pPriceFeedMock;
     }
 
-    /**
-     * @notice active network config and anvil network config set on deployment
-     */
-    NetworkConfig public activeNetworkConfig;
+    // active anvil config
     AnvilNetworkConfig public activeAnvilNetworkConfig;
+    // anvil price feed mocks
     PriceFeedMocks public anvilPriceFeedMocks;
+
+    /// The active live network config
+    LiveNetworkConfig public liveNetworkConfig;
 
     constructor() {
         if (block.chainid == 31337) {
             activeAnvilNetworkConfig = getOrCreateAnvilEthConfig();
         }
         if (block.chainid == 43113) {
-            activeNetworkConfig = getAvalancheEthConfig();
+            liveNetworkConfig = getAvalancheEthConfig();
+        }
+        if (block.chainid == 420) {
+            liveNetworkConfig = getOptimismEthConfig();
+        }
+        if (block.chainid == 80001) {
+            liveNetworkConfig = getPolygonEthConfig();
         }
     }
 
-    /**
-     * @notice a different struct config when testing contracts locally
-     */
+    //////////////////////////////////////
+    /////// LIVE NETWORK CONFIGS /////////
+    /////////////////////////////////////
+
+    /// avalanche config
+    function getAvalancheEthConfig() public pure returns (LiveNetworkConfig memory) {
+        LiveNetworkConfig memory avalancheNetworkConfig = LiveNetworkConfig({
+            wrappedAsset: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            router: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            link: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            avaxUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            opEthUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            maticUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            usdt: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            franfranSwap: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416
+        });
+
+        return avalancheNetworkConfig;
+    }
+
+    /// optimism config
+    function getOptimismEthConfig() public pure returns (LiveNetworkConfig memory) {
+        LiveNetworkConfig memory optimismNetworkConfig = LiveNetworkConfig({
+            wrappedAsset: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            router: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            link: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            avaxUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            opEthUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            maticUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            usdt: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            franfranSwap: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416
+        });
+
+        return optimismNetworkConfig;
+    }
+
+    /// Polygon config
+    function getPolygonEthConfig() public pure returns (LiveNetworkConfig memory) {
+        LiveNetworkConfig memory polygonNetworkConfig = LiveNetworkConfig({
+            wrappedAsset: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            router: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            link: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            avaxUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            opEthUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            maticUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            usdt: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            franfranSwap: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416
+        });
+
+        return polygonNetworkConfig;
+    }
+
+    /////////////////////////////////
+    //// ANVIL RELATED FUNCTIONS ////
+    /////////////////////////////////
+
+    /// used to get the deployment parameters for anvil
+    function getAnvilDeploymentParams() public view returns (MockContracts memory) {
+        address avalancheAsset = activeAnvilNetworkConfig.avalancheNetworkConfig.asset;
+        address optimismAsset = activeAnvilNetworkConfig.optimismNetworkConfig.asset;
+        address polygonAsset = activeAnvilNetworkConfig.polygonNetworkConfig.asset;
+
+        address router = activeAnvilNetworkConfig.avalancheNetworkConfig.router;
+
+        address aLink = activeAnvilNetworkConfig.avalancheNetworkConfig.link;
+        address oLink = activeAnvilNetworkConfig.optimismNetworkConfig.link;
+        address pLink = activeAnvilNetworkConfig.polygonNetworkConfig.link;
+
+        address aUsdt = activeAnvilNetworkConfig.avalancheNetworkConfig.usdt;
+        address oUsdt = activeAnvilNetworkConfig.optimismNetworkConfig.usdt;
+        address pUsdt = activeAnvilNetworkConfig.polygonNetworkConfig.usdt;
+
+        return
+            MockContracts(avalancheAsset, optimismAsset, polygonAsset, router, aLink, oLink, pLink, aUsdt, oUsdt, pUsdt);
+    }
+
+    /// used to set the deployment parameters for anvil
     function getOrCreateAnvilEthConfig() public returns (AnvilNetworkConfig memory) {
         MockContracts memory mockContracts = _deployMocks();
         SwapContracts memory swapContracts = _deploySwapContractsAndPriceFeedMocks(mockContracts);
@@ -121,32 +199,7 @@ contract HelperConfig is Script {
         return anvilNetworkConfig;
     }
 
-    /////// GETTER FUNCTIONS //////
-    /**
-     * @notice avalanche testnet config
-     */
-    function getAvalancheEthConfig() public returns (NetworkConfig memory) {
-        vm.startBroadcast();
-        MockERC20 wAvax = new MockERC20("wrapped AVAX", "wAVAX");
-
-        NetworkConfig memory avalancheNetworkConfig = NetworkConfig({
-            asset: address(wAvax),
-            router: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
-            link: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
-            usdt: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
-            franfranSwap: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416
-        });
-        vm.stopBroadcast();
-        return avalancheNetworkConfig;
-    }
-
-    /**
-     * @notice get active network deployment params for chains aside anvil
-     */
-    function getActiveNetworkDeploymentParams() public view returns (address, address, address) {
-        return (activeNetworkConfig.asset, activeNetworkConfig.router, activeNetworkConfig.link);
-    }
-
+    /// returns the swap mock contracts
     function getSwapContracts() public view returns (address, address, address) {
         return (
             activeAnvilNetworkConfig.avalancheNetworkConfig.franfranSwap,
@@ -155,62 +208,12 @@ contract HelperConfig is Script {
         );
     }
 
-    /**
-     * @notice get deployment params for anvil chain
-     */
-    function getAnvilDeploymentParams() public view returns (MockContracts memory) {
-        address avalancheAsset = activeAnvilNetworkConfig.avalancheNetworkConfig.asset;
-        address optimismAsset = activeAnvilNetworkConfig.optimismNetworkConfig.asset;
-        address polygonAsset = activeAnvilNetworkConfig.polygonNetworkConfig.asset;
+    /////////////////////////////////////
+    //////// PRIVATE DEPLOY MOCKS ////////
+    /////////////////////////////////////
 
-        address router = activeAnvilNetworkConfig.avalancheNetworkConfig.router;
-
-        address aLink = activeAnvilNetworkConfig.avalancheNetworkConfig.link;
-        address oLink = activeAnvilNetworkConfig.optimismNetworkConfig.link;
-        address pLink = activeAnvilNetworkConfig.polygonNetworkConfig.link;
-
-        address aUsdt = activeAnvilNetworkConfig.avalancheNetworkConfig.usdt;
-        address oUsdt = activeAnvilNetworkConfig.optimismNetworkConfig.usdt;
-        address pUsdt = activeAnvilNetworkConfig.polygonNetworkConfig.usdt;
-
-        return
-            MockContracts(avalancheAsset, optimismAsset, polygonAsset, router, aLink, oLink, pLink, aUsdt, oUsdt, pUsdt);
-    }
-
-    ///// INTERNAL FUNCTIONS ////
-
-    /**
-     * @notice deploys the mock swap contracts
-     */
-    function _deploySwapContractsAndPriceFeedMocks(MockContracts memory mockContracts)
-        internal
-        returns (SwapContracts memory)
-    {
-        vm.startBroadcast();
-
-        console.log("Deploying Aggregator V3 Mocks...");
-        MockV3Aggregator aPricFeedMock = new MockV3Aggregator(DECIMALS, AVAX_INITIAL_ANSWER);
-        MockV3Aggregator oPricFeedMock = new MockV3Aggregator(DECIMALS, OP_INITIAL_ANSWER);
-        MockV3Aggregator pPricFeedMock = new MockV3Aggregator(DECIMALS, MATIC_INITIAL_ANSWER);
-
-        anvilPriceFeedMocks = PriceFeedMocks(address(aPricFeedMock), address(oPricFeedMock), address(pPricFeedMock));
-
-        console.log("Deploying franfran swap contracts...");
-        FranFranSwap aFranFranSwap = new FranFranSwap(address(aPricFeedMock), mockContracts.aUsdt, mockContracts.wAVAX);
-        FranFranSwap oFranFranSwap = new FranFranSwap(address(oPricFeedMock), mockContracts.oUsdt, mockContracts.wOP);
-        FranFranSwap pFranFranSwap = new FranFranSwap(address(pPricFeedMock), mockContracts.pUsdt, mockContracts.wMATIC);
-
-        vm.stopBroadcast();
-
-        return (SwapContracts(address(aFranFranSwap), address(oFranFranSwap), address(pFranFranSwap)));
-    }
-
-    /**
-     * @notice deploy mocks for each contract when testing on anvil
-     * @dev we have a single router contract that is used for all the contrcats locally thats because while testing our cross chian functionality locally we act like the diffrenet contracts deployed are on differetn chains.
-     * This allows me to be able to test on a local enviroment and debug things faster rather than assuming or waiting for a 5-10 min cross chain transaction to approve my guesses.
-     */
-    function _deployMocks() internal returns (MockContracts memory) {
+    /// deploys neccessary mocks
+    function _deployMocks() private returns (MockContracts memory) {
         vm.startBroadcast();
 
         // deploy assets for each contract chain
@@ -253,5 +256,29 @@ contract HelperConfig is Script {
         vm.stopBroadcast();
 
         return mockContracts;
+    }
+
+    /// deploys the mock swap contracts
+    function _deploySwapContractsAndPriceFeedMocks(MockContracts memory mockContracts)
+        private
+        returns (SwapContracts memory)
+    {
+        vm.startBroadcast();
+
+        console.log("Deploying Aggregator V3 Mocks...");
+        MockV3Aggregator aPricFeedMock = new MockV3Aggregator(DECIMALS, AVAX_INITIAL_ANSWER);
+        MockV3Aggregator oPricFeedMock = new MockV3Aggregator(DECIMALS, OP_INITIAL_ANSWER);
+        MockV3Aggregator pPricFeedMock = new MockV3Aggregator(DECIMALS, MATIC_INITIAL_ANSWER);
+
+        anvilPriceFeedMocks = PriceFeedMocks(address(aPricFeedMock), address(oPricFeedMock), address(pPricFeedMock));
+
+        console.log("Deploying franfran swap contracts...");
+        FranFranSwap aFranFranSwap = new FranFranSwap(address(aPricFeedMock), mockContracts.aUsdt, mockContracts.wAVAX);
+        FranFranSwap oFranFranSwap = new FranFranSwap(address(oPricFeedMock), mockContracts.oUsdt, mockContracts.wOP);
+        FranFranSwap pFranFranSwap = new FranFranSwap(address(pPricFeedMock), mockContracts.pUsdt, mockContracts.wMATIC);
+
+        vm.stopBroadcast();
+
+        return (SwapContracts(address(aFranFranSwap), address(oFranFranSwap), address(pFranFranSwap)));
     }
 }
