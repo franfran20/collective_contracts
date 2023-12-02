@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../CollectiveCoreUnitTest.t.sol";
 
 /**
- * @notice Contract For Depositing USDT Unit Tests
+ * @notice Unit Tests For Depositing USDT as a cosmic provider
  */
 contract DepositUSDTUnitTest is CollectiveCoreUnitTest {
     function testDepositUSDTRevertsIfAmountIsZero() public {

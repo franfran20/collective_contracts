@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import "../CollectiveCoreUnitTest.t.sol";
 
 /**
- * @notice Contract For Reedeming USDT Unit Tests
+ * @notice Unit Tests For Reedeming USDT As A Cosmic Provider
  */
 contract ReedemUSDTUnitTest is CollectiveCoreUnitTest {
     uint256 EXCESS_REEDEM_AMOUNT = 300e18;

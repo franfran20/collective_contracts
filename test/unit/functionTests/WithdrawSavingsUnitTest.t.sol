@@ -5,9 +5,9 @@ pragma solidity ^0.8.18;
 import "../CollectiveCoreUnitTest.t.sol";
 
 /**
- * @notice Contract For Withdrawing Savings Unit Test
+ * @notice Unit Tests For Withdrawing Savings
  */
-contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
+contract WithdrawSavingsUnitTest is CollectiveCoreUnitTest {
     uint256[3] private savingsTarget = [2e18, 2e18, 2e18];
 
     function testWithdrawSavingsRevertsIfUserSavingStatusIsFalse() public {
@@ -36,7 +36,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         public
         startSavingsWithAvax(USER_ONE)
     {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
 
         vm.warp(block.timestamp + SAVING_TIME + 1);
@@ -47,7 +46,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     }
 
     function testWithdrawSavingsRevertsIfUsdtOnContractIsntSufficient() public startSavingsWithAvax(USER_ONE) {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
         vm.warp(block.timestamp + SAVING_TIME + 1);
 
@@ -62,7 +60,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     }
 
     function testWithdrawSavingsGivesUserHisInterestInUsdt() public startSavingsWithAvax(USER_ONE) {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
         _depositUSTDToContractsAsCosmicProvider();
         vm.warp(block.timestamp + SAVING_TIME + 1);
@@ -86,7 +83,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     }
 
     function testWithdrawSavingsGivesUserHisInitialBalanceAccrossChain() public startSavingsWithAvax(USER_ONE) {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
         _depositUSTDToContractsAsCosmicProvider();
         vm.warp(block.timestamp + SAVING_TIME + 1);
@@ -116,13 +112,12 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         public
         startSavingsWithAvax(USER_ONE)
     {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
         _depositUSTDToContractsAsCosmicProvider();
         vm.warp(block.timestamp + SAVING_TIME + 1);
 
         _generateInterestInPool(1 ether, 1.5 ether, 0.9 ether);
-        // interest pool balance before withdrawal
+
         uint256 interestPoolBalanceBeforeWithdrawal = collectiveCoreAvalanche.getInterestPoolBalance();
         uint256 userInterestShare = collectiveCoreAvalanche.getUsersShareInInterestPool(USER_ONE);
 
@@ -149,7 +144,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     }
 
     function testWithdrawSavingsResetsUsersSavingDetails() public startSavingsWithAvax(USER_ONE) {
-        // fulfil targets
         _fulfillDefaultTargets(USER_ONE);
         _depositUSTDToContractsAsCosmicProvider();
         vm.warp(block.timestamp + SAVING_TIME + 1);
@@ -204,19 +198,16 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     function _depositUSTDToContractsAsCosmicProvider() internal {
         vm.startPrank(COSMIC_PROVIDER_ONE);
 
-        // avalanche
         address aUsdt = collectiveCoreAvalanche.s_usdt();
         _mintAssetToUser(COSMIC_PROVIDER_ONE, aUsdt, DEPOSIT_USDT_AMOUNT);
         MockERC20(aUsdt).approve(address(collectiveCoreAvalanche), DEPOSIT_USDT_AMOUNT);
         collectiveCoreAvalanche.depositUSDT(DEPOSIT_USDT_AMOUNT);
 
-        // optimsim
         address oUsdt = collectiveCoreOptimism.s_usdt();
         _mintAssetToUser(COSMIC_PROVIDER_ONE, oUsdt, DEPOSIT_USDT_AMOUNT);
         MockERC20(oUsdt).approve(address(collectiveCoreOptimism), DEPOSIT_USDT_AMOUNT);
         collectiveCoreOptimism.depositUSDT(DEPOSIT_USDT_AMOUNT);
 
-        // polygon
         address pUsdt = collectiveCorePolygon.s_usdt();
         _mintAssetToUser(COSMIC_PROVIDER_ONE, pUsdt, DEPOSIT_USDT_AMOUNT);
         MockERC20(pUsdt).approve(address(collectiveCorePolygon), DEPOSIT_USDT_AMOUNT);
@@ -225,5 +216,3 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         vm.stopPrank();
     }
 }
-
-//  function testWithdrawSavings() public startSavingsWithAvax(USER_ONE) {}

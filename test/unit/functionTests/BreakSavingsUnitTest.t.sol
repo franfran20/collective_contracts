@@ -7,7 +7,7 @@ import {FranFranSwap} from "../../mocks/FranFranSwap.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts-ccip/src/v0.4/interfaces/AggregatorV3Interface.sol";
 
 /**
- * @notice Contract For Depositing USDT Unit Tests
+ * @notice Unit Test For Breaking Savings
  */
 contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
     uint256 BUFFER_AMOUNT = 95;
@@ -78,7 +78,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
             collectiveCoreAvalanche.s_avaxPriceFeed()
         );
 
-        // optimism buffered usd amount
         uint256 opUsdtIncrease = _getAmountToIncreasePoolBy(
             userSavingBalance.wOP,
             collectiveCoreAvalanche.OPTIMISM_DEFAULT_FEE(),
@@ -86,7 +85,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         );
         uint256 opBufferAmount = (BUFFER_AMOUNT * opUsdtIncrease) / 100;
 
-        // polygon buffered usd amount
         uint256 maticUsdtIncrease = _getAmountToIncreasePoolBy(
             userSavingBalance.wMATIC,
             collectiveCoreAvalanche.POLYGON_DEFAULT_FEE(),
@@ -140,7 +138,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         collectiveCoreAvalanche.breakSavings();
         vm.stopPrank();
 
-        // optimism buffered usd amount
         uint256 opUsdtIncrease = _getAmountToIncreasePoolBy(
             userSavingBalance.wOP,
             collectiveCoreAvalanche.OPTIMISM_DEFAULT_FEE(),
@@ -220,8 +217,6 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         _topUpUserSavings(USER_ONE, SAVINGS_TARGET[1], OPTIMISM_CHAIN_SELECTOR);
         _topUpUserSavings(USER_ONE, SAVINGS_TARGET[2], POLYGON_CHAIN_SELECTOR);
 
-        // address s_wAVAX = collectiveCoreAvalanche.s_wAVAX();
-
         ICollectiveCore.CrossChainAssets memory userSavingBalance =
             collectiveCoreAvalanche.getUserSavingBalance(USER_ONE);
 
@@ -229,9 +224,8 @@ contract BreakSavingsUnitTest is CollectiveCoreUnitTest {
         collectiveCoreAvalanche.breakSavings();
         vm.stopPrank();
 
-        // usdt balances
         ICollectiveCore.UsdtBalances memory usdtBalances = collectiveCoreOptimism.getUsdtBalances();
-        // interest pool
+
         uint256 interestPoolBalance = collectiveCorePolygon.getInterestPoolBalance();
 
         uint256 avaxUsdtIncrease = _getAmountToIncreasePoolBy(

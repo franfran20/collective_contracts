@@ -7,6 +7,7 @@ import {MockERC20} from "./MockERC20.sol";
 
 /**
  * @notice Mock contrat for simulating a swap using chainlink pricefeed
+ * @dev nowhere near what an actual dex swap would look like but useful for simulating whate we expect
  */
 contract FranFranSwap {
     AggregatorV3Interface priceFeed;

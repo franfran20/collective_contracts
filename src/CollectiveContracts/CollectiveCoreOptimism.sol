@@ -35,6 +35,10 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
     mapping(address asset => bool supported) private s_supportedAsset;
     mapping(address user => SavingDetails) private s_savingsDetails;
     mapping(address cosmicProvider => CosmicProvider) private s_cosmicProvider;
+    mapping(uint256 groupID => mapping(address user => bool membership)) public s_isMember;
+    mapping(uint256 groupID => mapping(address user => CrossChainAssets contribution)) private s_contribution;
+    mapping(uint256 groupID => bool dispatched) private s_dispatched;
+    mapping(uint256 groupID => mapping(address user => bool contributionClaimed)) private s_contributionClaimed;
 
     /// @notice wrapped optimsim Eth token and usdt
     address public s_wOP;
@@ -89,9 +93,19 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
     bytes32 constant s_reedemUsdtPath = keccak256("reedemUSDT");
     bytes32 constant s_breakSavingsPath = keccak256("breakSavings");
     bytes32 constant s_withdrawSavingsPath = keccak256("withdrawSavings");
+    bytes32 constant s_createGroupSavingsPath = keccak256("createGroupSavings");
+    bytes32 constant s_contributeToGroupSavingsPath = keccak256("contributeToGroup");
+    bytes32 constant s_dispatchGroupFundsSavingsPath = keccak256("dispatchGroupFundsToRecipient");
+    bytes32 constant s_claimGroupContributionMessagePath = keccak256("claimGroupContribution");
 
     /// @notice update destination address locked status
     bool locked;
+
+    /// @notice saving groups
+    GroupSavingDetails[] public groupSavingDetails;
+
+    //@notice protocol profit
+    uint256 s_protocolProfit;
 
     /**
      * @notice constructor
@@ -310,50 +324,105 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
         _sendCrossChainMessage(s_polygonContractAddress, encodedPayload, s_polygonChainSelector);
     }
 
-    function createGroupSavings() external {
-        // 1. generate a new group savings ID
-        // 2. update the group savings details
-        // 3. collect starting amount for creating the savings group
-        // fire event
-        // 3. send a cross chain messgaing sending that information to other chains
+    /// @notice can only create group on Avalanche chain
+    function createGroupSavings(uint256, string memory, address, uint256, uint256[3] memory) external pure {
+        revert CollectiveCore__CannotCreateGroupSavingsOnThisChain();
     }
 
-    function joinGroupSavings() external {
-        // 1. allows a user using the group ID to become a member of the group
-        // 2. require that the user isnt already in the group.
-        // 3. require a deposit amount to join the svaings group.
-        // make sure that the details for the group savings are still valid(not expired) before joining the group: else revert
-        // 4. update the members count and the group details.abi
-        // fire event
-        // send a cross chain message updating the group details.
+    /**
+     * @inheritdoc ICollectiveCore
+     * @notice Includes Modifier Checks For:
+     * Group Existence, Group Saving Time Over
+     */
+    function contributeToGroup(uint256 groupID, uint256 amount)
+        external
+        checkGroupExists(groupID)
+        checkGroupSavingTimeIsntOver(groupID)
+    {
+        IERC20(s_wOP).transferFrom(msg.sender, address(this), amount);
+        bool isMember = s_isMember[groupID][msg.sender];
+
+        if (!isMember) {
+            s_isMember[groupID][msg.sender] = true;
+            groupSavingDetails[groupID - 1].members += 1;
+        }
+
+        groupSavingDetails[groupID - 1].amountRaised.wOP += amount;
+        s_contribution[groupID][msg.sender].wOP += amount;
+
+        bytes memory innerPayload = abi.encode(groupID, amount);
+        bytes memory encodedPayload =
+            abi.encode(s_contributeToGroupSavingsPath, innerPayload, s_optimismChainSelector, msg.sender);
+
+        _sendCrossChainMessage(s_avalancheContractAddress, encodedPayload, s_avalancheChainSelector);
+        _sendCrossChainMessage(s_polygonContractAddress, encodedPayload, s_polygonChainSelector);
     }
 
-    function contribute() external {
-        // allows a member to contribute to the savings group
-        // checks that the contribution amount is not zero
-        // must be a member of the savings group
-        // makes sure that conribution to the group wontrevert due to the group already failing to meet their target in specified time.
-        // update the group details balance and member contribution.
-        // fire event
-        // send cross chain message updating the group details after contribution.
+    /**
+     * @inheritdoc ICollectiveCore
+     * @notice Includes Modifier Checks For:
+     * Group Existence, Fulfillment of dispatch requirements
+     */
+    function dispatchGroupFundsToRecipient(uint256 groupID)
+        external
+        checkGroupExists(groupID)
+        checkCanDispatchGroupFunds(groupID)
+    {
+        if (!s_isMember[groupID][msg.sender]) {
+            revert CollectiveCore__OnlyContributorsCanDispatchFunds();
+        }
+        if (s_dispatched[groupID]) {
+            revert CollectiveCore__GroupSavingsAlreadyDispatched();
+        }
+
+        uint256 savedAmountOnThisChain = groupSavingDetails[groupID - 1].amountRaised.wOP;
+        address recipient = groupSavingDetails[groupID - 1].recipient;
+
+        s_dispatched[groupID] = true;
+
+        if (savedAmountOnThisChain > 0) {
+            IERC20(s_wOP).transfer(recipient, savedAmountOnThisChain);
+        }
+
+        bytes memory innerPayload = abi.encode(groupID);
+        bytes memory encodedPayload =
+            abi.encode(s_dispatchGroupFundsSavingsPath, innerPayload, s_optimismChainSelector, msg.sender);
+
+        _sendCrossChainMessage(s_avalancheContractAddress, encodedPayload, s_avalancheChainSelector);
+        _sendCrossChainMessage(s_polygonContractAddress, encodedPayload, s_polygonChainSelector);
     }
 
-    function dispatchAll() external {
-        // dispatches all the assets to a particular address from a "succesfull" group saving.
-        // checks that thr group svaing was succcesful
-        // check that the dispatcher is a member of the group
-        // updates the group svaings details and balance and dispatched the asset on individual chains
-        // fire event
-        // send cross chain message updating the group savings details and balance
-    }
+    /**
+     * @inheritdoc ICollectiveCore
+     * @notice Includes Modifier Chesck for:
+     * Checking Group Existence, Checking If A Contribution Can Be Claimed
+     */
+    function claimGroupContribution(uint256 groupID)
+        external
+        checkGroupExists(groupID)
+        checkUserCanClaimContribution(groupID)
+    {
+        if (!s_isMember[groupID][msg.sender]) revert CollectiveCore__NotAMemberOfThisGroup();
+        if (s_contributionClaimed[groupID][msg.sender]) revert CollectiveCore__ContributionAlreadyClaimed();
 
-    function claimContribution() external {
-        // claim contribution when a group savings fails to reach its saving goals
-        // check that the user was a memberof the svaings group
-        // checks that the amount he's withdrawing is actually >= what he has in his balance
-        // sends tokens back to the user after collecting failure fee
-        // fire event
-        // sends cross chain message to initiate withdrawal across chain with failure fee attacthed to each chains
+        uint256 userContributionOnThisChain = s_contribution[groupID][msg.sender].wOP;
+        if (userContributionOnThisChain > 0) {
+            uint256 amountToTransferToUser = (userContributionOnThisChain * (100 - OPTIMISM_DEFAULT_FEE)) / 100;
+            uint256 protocolProfit = (userContributionOnThisChain * OPTIMISM_DEFAULT_FEE) / 100;
+
+            IERC20(s_wOP).transfer(msg.sender, amountToTransferToUser);
+            s_protocolProfit += protocolProfit;
+        }
+
+        s_contribution[groupID][msg.sender] = CrossChainAssets(0, 0, 0);
+        s_contributionClaimed[groupID][msg.sender] = true;
+
+        bytes memory innerPayload = abi.encode(groupID);
+        bytes memory encodedPayload =
+            abi.encode(s_claimGroupContributionMessagePath, innerPayload, s_optimismChainSelector, msg.sender);
+
+        _sendCrossChainMessage(s_avalancheContractAddress, encodedPayload, s_avalancheChainSelector);
+        _sendCrossChainMessage(s_polygonContractAddress, encodedPayload, s_polygonChainSelector);
     }
 
     //////////////////////////////
@@ -598,6 +667,18 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
         if (messagePath == s_withdrawSavingsPath) {
             _handleWithdrawSavingsMessagePath(sender, innerPayload, sourceChainSelector);
         }
+        if (messagePath == s_createGroupSavingsPath) {
+            _handleCreateSavingsGroupMessagePath(sender, innerPayload, sourceChainSelector);
+        }
+        if (messagePath == s_contributeToGroupSavingsPath) {
+            _handleContributeToGroupSavingsMessagePath(sender, innerPayload, sourceChainSelector);
+        }
+        if (messagePath == s_dispatchGroupFundsSavingsPath) {
+            _handleDispatchGroupFundsToRecipientMessagePath(sender, innerPayload, sourceChainSelector);
+        }
+        if (messagePath == s_claimGroupContributionMessagePath) {
+            _handleClaimGroupContributionMessagePath(sender, innerPayload, sourceChainSelector);
+        }
     }
 
     //// HANDLERS /////
@@ -774,6 +855,116 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
         _resetUserSavingsDetails(saver);
     }
 
+    /**
+     * @notice handles decoding parameters and executing the create group savings function from a source chain
+     * @param creator group creator
+     * @param createGroupSavingsPayload endoded payload for creating group savings
+     */
+    function _handleCreateSavingsGroupMessagePath(address creator, bytes memory createGroupSavingsPayload, uint64)
+        internal
+    {
+        (
+            uint256 groupID,
+            uint256 amount,
+            string memory purpose,
+            address recipient,
+            uint256 startTime,
+            uint256 stopTime,
+            uint256[3] memory targets
+        ) = abi.decode(createGroupSavingsPayload, (uint256, uint256, string, address, uint256, uint256, uint256[3]));
+
+        GroupSavingDetails memory groupSavingsCreated = GroupSavingDetails({
+            groupID: groupID,
+            purpose: purpose,
+            creator: creator,
+            recipient: recipient,
+            savingStartTime: startTime,
+            savingStopTime: stopTime,
+            members: 1,
+            target: CrossChainAssets(targets[0], targets[1], targets[2]),
+            amountRaised: CrossChainAssets(amount, 0, 0)
+        });
+        groupSavingDetails.push(groupSavingsCreated);
+
+        s_isMember[groupID][creator] = true;
+
+        s_contribution[groupID][creator].wAVAX = amount;
+    }
+
+    /**
+     * @notice handles decoding parameters and executing the withdraw savings function from a source chain
+     * @param contributor address of the contributor
+     * @param contributeToGroupPayload endoded payload for contributing to group savings
+     * @param sourceChainSelector The source chain selector
+     */
+    function _handleContributeToGroupSavingsMessagePath(
+        address contributor,
+        bytes memory contributeToGroupPayload,
+        uint64 sourceChainSelector
+    ) internal {
+        (uint256 groupID, uint256 amount) = abi.decode(contributeToGroupPayload, (uint256, uint256));
+
+        bool isMember = s_isMember[groupID][contributor];
+
+        if (!isMember) {
+            s_isMember[groupID][contributor] = true;
+            groupSavingDetails[groupID - 1].members += 1;
+        }
+
+        if (sourceChainSelector == s_avalancheChainSelector) {
+            groupSavingDetails[groupID - 1].amountRaised.wAVAX += amount;
+            s_contribution[groupID][contributor].wAVAX += amount;
+        }
+        if (sourceChainSelector == s_polygonChainSelector) {
+            groupSavingDetails[groupID - 1].amountRaised.wMATIC += amount;
+            s_contribution[groupID][contributor].wMATIC += amount;
+        }
+    }
+
+    /**
+     * @notice handles decoding parameters and executing the withdraw savings function from a source chain
+     * @param dispatchFundsPayload endoded payload for contributing to group savings
+     */
+    function _handleDispatchGroupFundsToRecipientMessagePath(address, bytes memory dispatchFundsPayload, uint64)
+        internal
+    {
+        uint256 groupID = abi.decode(dispatchFundsPayload, (uint256));
+
+        uint256 savedAmountOnThisChain = groupSavingDetails[groupID - 1].amountRaised.wOP;
+        address recipient = groupSavingDetails[groupID - 1].recipient;
+
+        s_dispatched[groupID] = true;
+
+        if (savedAmountOnThisChain > 0) {
+            IERC20(s_wOP).transfer(recipient, savedAmountOnThisChain);
+        }
+    }
+
+    /**
+     * @notice handles decoding parameters and executing the withdraw savings function from a source chain
+     * @param claimer Address of the claimer
+     * @param claimGroupContributionPalyoad endoded payload for contributing to group savings
+     */
+    function _handleClaimGroupContributionMessagePath(
+        address claimer,
+        bytes memory claimGroupContributionPalyoad,
+        uint64
+    ) internal {
+        uint256 groupID = abi.decode(claimGroupContributionPalyoad, (uint256));
+
+        uint256 userContributionOnThisChain = s_contribution[groupID][claimer].wOP;
+        if (userContributionOnThisChain > 0) {
+            uint256 amountToTransferToUser = (userContributionOnThisChain * (100 - OPTIMISM_DEFAULT_FEE)) / 100;
+            uint256 protocolProfit = (userContributionOnThisChain * OPTIMISM_DEFAULT_FEE) / 100;
+            s_protocolProfit += protocolProfit;
+
+            IERC20(s_wOP).transfer(claimer, amountToTransferToUser);
+        }
+
+        s_contributionClaimed[groupID][claimer] = true;
+        s_contribution[groupID][claimer] = CrossChainAssets(0, 0, 0);
+    }
+
     ///////////////////////////////
     ///// GETTER FUNCTIONSS ////////
     ///////////////////////////////
@@ -801,6 +992,11 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
     /// @notice gets the actual contract usdt balances for all chains
     function getUsdtBalances() public view returns (UsdtBalances memory) {
         return s_UsdtBalances;
+    }
+
+    ///@notice get protocol profit
+    function getProtocolProfit() public view returns (uint256) {
+        return s_protocolProfit;
     }
 
     /// @notice gets a users share in the cross chain interest pool based on saving time
@@ -862,6 +1058,21 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
     /// @notice gets the cosmic providers unlock period for withdrawal of deposited USDT
     function getUnlockPeriod(address cosmicProvider) public view returns (uint256) {
         return s_cosmicProvider[cosmicProvider].unlockPeriod;
+    }
+
+    /// @notice getsthe group saving details by index
+    function getGroupSavingDetailByIndex(uint256 index) public view returns (GroupSavingDetails memory) {
+        return groupSavingDetails[index];
+    }
+
+    /// @notice gets the membership status of a user in a group saving
+    function getUserMemebrshipStatus(uint256 groupID, address user) public view returns (bool) {
+        return s_isMember[groupID][user];
+    }
+
+    /// @notice gets the users contribution for a particular group
+    function getUserGroupContribution(uint256 groupID, address user) public view returns (CrossChainAssets memory) {
+        return s_contribution[groupID][user];
     }
 
     ///////////////////////////
@@ -967,5 +1178,64 @@ contract CollectiveCoreOptimism is ICollectiveCore, CCIPReceiver {
             revert CollectiveCore__UserDidNotMeetSavingsTarget();
         }
         _;
+    }
+
+    /// @notice checks that the group saving time isnt over to acept contributions
+    modifier checkGroupSavingTimeIsntOver(uint256 groupID) {
+        uint256 groupSavingStopTime = groupSavingDetails[groupID - 1].savingStopTime;
+        if (block.timestamp > groupSavingStopTime) {
+            revert CollectiveCore__CannotJoinGroupSavingsAnymore();
+        }
+        _;
+    }
+
+    ///@notice checks that the group exists
+    modifier checkGroupExists(uint256 groupID) {
+        if (groupID > groupSavingDetails.length) {
+            revert CollectiveCore__SavingsGroupDoesNotExist();
+        }
+        _;
+    }
+
+    ///@notice checks if the group funds can be dispatched by the caller
+    modifier checkCanDispatchGroupFunds(uint256 groupID) {
+        uint256 groupSavingStopTime = groupSavingDetails[groupID - 1].savingStopTime;
+        if (block.timestamp < groupSavingStopTime) {
+            revert CollectiveCore__GroupSavingsTimeHasntArrived();
+        }
+
+        CrossChainAssets memory groupAmountRaised = groupSavingDetails[groupID - 1].amountRaised;
+        CrossChainAssets memory groupSavingsTarget = groupSavingDetails[groupID - 1].target;
+        if (
+            (groupAmountRaised.wAVAX < groupSavingsTarget.wAVAX) || (groupAmountRaised.wOP < groupSavingsTarget.wOP)
+                || (groupAmountRaised.wMATIC < groupSavingsTarget.wMATIC)
+        ) {
+            revert CollectiveCore__GroupDidNotMeetSavingsTarget();
+        }
+        _;
+    }
+
+    modifier checkUserCanClaimContribution(uint256 groupID) {
+        // checks if the svaing time has ellapsed AND they did not meet their target
+        uint256 groupSavingStopTime = groupSavingDetails[groupID - 1].savingStopTime;
+        bool savingTimeEllapsed = block.timestamp > groupSavingStopTime;
+
+        bool didNotMeetTarget;
+        CrossChainAssets memory groupAmountRaised = groupSavingDetails[groupID - 1].amountRaised;
+        CrossChainAssets memory target = groupSavingDetails[groupID - 1].target;
+        if (
+            (groupAmountRaised.wAVAX < target.wAVAX) || (groupAmountRaised.wOP < target.wOP)
+                || (groupAmountRaised.wMATIC < target.wMATIC)
+        ) {
+            didNotMeetTarget = true;
+        } else {
+            didNotMeetTarget = false;
+        }
+
+        if (savingTimeEllapsed && didNotMeetTarget) {
+            _;
+        } else {
+            revert CollectiveCore__CannotClaimContribution();
+        }
     }
 }

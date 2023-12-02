@@ -5,13 +5,9 @@ pragma solidity ^0.8.18;
 import "../CollectiveCoreUnitTest.t.sol";
 
 /**
- * @notice Contract For Start Savings Unit Tests
+ * @notice Unit Tests For Topping Up Savings
  */
 contract TopUpSavingsUnitTest is CollectiveCoreUnitTest {
-    //////////////////////////////////////////
-    ////// TOP UP SAVING FUNCTION TESTS /////
-    //////////////////////////////////////////
-
     uint256 wAVAX_AMOUNT_TO_TOP_UP = 15e18;
 
     function testTopUpSavingFunctionRevertsOnUsageOfUnsupportedAssets(address asset)
@@ -53,10 +49,7 @@ contract TopUpSavingsUnitTest is CollectiveCoreUnitTest {
 
         _mintAssetToUser(USER_ONE, wAVAX, wAVAX_AMOUNT_TO_TOP_UP);
 
-        vm.expectRevert();
-        ///////
-        // come back and make this revert be no active saving instead of saving time has passed
-        //////
+        vm.expectRevert(ICollectiveCore.CollectiveCore__UserDoesntHaveAnActiveSaving.selector);
         collectiveCoreAvalanche.topUpSavings(wAVAX, wAVAX_AMOUNT_TO_TOP_UP);
 
         vm.stopPrank();
@@ -90,7 +83,6 @@ contract TopUpSavingsUnitTest is CollectiveCoreUnitTest {
         assertEq(savingsDetails.savingsEndTime, block.timestamp + SAVING_TIME);
         assertEq(savingsDetails.reason, SAVING_REASON);
 
-        // savings balance asserts
         assertEq(savingsDetails.savingsBalance.wAVAX, SAVINGS_AMOUNT + wAVAX_AMOUNT_TO_TOP_UP);
         assertEq(savingsDetails.savingsBalance.wOP, 0);
         assertEq(savingsDetails.savingsBalance.wMATIC, 0);
@@ -110,7 +102,6 @@ contract TopUpSavingsUnitTest is CollectiveCoreUnitTest {
         assertEq(savingsDetails.savingsEndTime, block.timestamp + SAVING_TIME);
         assertEq(savingsDetails.reason, SAVING_REASON);
 
-        // savings balance asserts
         assertEq(savingsDetails.savingsBalance.wAVAX, SAVINGS_AMOUNT + wAVAX_AMOUNT_TO_TOP_UP);
         assertEq(savingsDetails.savingsBalance.wOP, 0);
         assertEq(savingsDetails.savingsBalance.wMATIC, 0);
@@ -130,7 +121,6 @@ contract TopUpSavingsUnitTest is CollectiveCoreUnitTest {
         assertEq(savingsDetails.savingsEndTime, block.timestamp + SAVING_TIME);
         assertEq(savingsDetails.reason, SAVING_REASON);
 
-        // savings balance asserts
         assertEq(savingsDetails.savingsBalance.wAVAX, SAVINGS_AMOUNT + wAVAX_AMOUNT_TO_TOP_UP);
         assertEq(savingsDetails.savingsBalance.wOP, 0);
         assertEq(savingsDetails.savingsBalance.wMATIC, 0);

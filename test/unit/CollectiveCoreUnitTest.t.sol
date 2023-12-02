@@ -4,73 +4,79 @@ pragma solidity ^0.8.18;
 
 import {Test, console} from "forge-std/Test.sol";
 
+import {ICollectiveCore} from "../../src/interfaces/ICollectiveCore.sol";
 import {CollectiveCoreAvalanche} from "../../src/CollectiveContracts/CollectiveCoreAvalanche.sol";
 import {CollectiveCoreOptimism} from "../../src/CollectiveContracts/CollectiveCoreOptimism.sol";
 import {CollectiveCorePolygon} from "../../src/CollectiveContracts/CollectiveCorePolygon.sol";
+
 import {DeployCollectiveCore} from "../../script/DeployCollectiveCore.s.sol";
-
-import {ICollectiveCore} from "../../src/interfaces/ICollectiveCore.sol";
-
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
 
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts-ccip/src/v0.4/interfaces/AggregatorV3Interface.sol";
 
 /**
- * @notice Unit Tests For Collective Core Contracts
+ * @notice Base Contract For Unit Tests On Collective Core Contracts
  * @dev Most cross chain tests are initiated from avalanche chain for local testing
+ * Coverage isnt so high because contracts are basically replicas with minute changes to native asset, detsination chains etc.
+ * Tested Mostly From Avalanche and mixed up a few from polygon and optimism locally to be able to reach hackathon deadline.
  */
 contract CollectiveCoreUnitTest is Test {
-    /**
-     * @notice collective core contrats
-     */
-    CollectiveCoreAvalanche public collectiveCoreAvalanche;
-    CollectiveCoreOptimism public collectiveCoreOptimism;
-    CollectiveCorePolygon public collectiveCorePolygon;
+    // collective core contracts
+    CollectiveCoreAvalanche collectiveCoreAvalanche;
+    CollectiveCoreOptimism collectiveCoreOptimism;
+    CollectiveCorePolygon collectiveCorePolygon;
 
-    address public USER_ONE = makeAddr("USER_ONE");
-    address public USER_TWO = makeAddr("USER_TWO");
-    address public USER_THREE = makeAddr("USER_THREE");
-    address public USER_FOUR = makeAddr("USER_FOUR");
+    // users for testing
+    address USER_ONE = makeAddr("USER_ONE");
+    address USER_TWO = makeAddr("USER_TWO");
+    address USER_THREE = makeAddr("USER_THREE");
+    address USER_FOUR = makeAddr("USER_FOUR");
 
-    address public COSMIC_PROVIDER_ONE = makeAddr("COSMIC_PROVIDER_ONE");
+    address RANDOM_USER = makeAddr("RANDOM_USER");
+
+    address GROUP_SAVING_RECIPIENT = makeAddr("GROUP_SAVING_RECIPIENT");
+
+    // cosmic provider for testing
+    address COSMIC_PROVIDER_ONE = makeAddr("COSMIC_PROVIDER_ONE");
+
+    // saving details for testing
 
     string constant SAVING_REASON = "To pay for my upcoming rent";
+    string constant GROUP_SAVING_REASON = "To help support FranFran Charity Foundation";
 
-    uint256 public constant SAVINGS_AMOUNT = 2e18;
-    uint256 public constant SAVING_TIME = 1 hours;
-    uint256 public LINK_AMOUNT_TO_MINT = 10e18;
-    uint256 public constant LINK_MINT_AMOUNT = 5 ether;
-    uint256 public constant DEPOSIT_USDT_AMOUNT = 200e18;
+    uint256 constant SAVINGS_AMOUNT = 2e18;
+    uint256 constant SAVING_TIME = 1 hours;
+    uint256 constant GROUP_SAVING_TIME = 2 hours;
+
+    uint256 LINK_AMOUNT_TO_MINT = 10e18;
+    uint256 DEPOSIT_USDT_AMOUNT = 200e18;
+
     uint256 ZERO_AMOUNT = 0;
-    uint256 constant REEDEM_AMOUNT = 100e18;
+    uint256 REEDEM_AMOUNT = 100e18;
 
-    uint64 constant AVALANCHE_CHAIN_SELECTOR = 14767482510784806043;
-    uint64 constant OPTIMISM_CHAIN_SELECTOR = 2664363617261496610;
+    uint64 AVALANCHE_CHAIN_SELECTOR = 14767482510784806043;
+    uint64 OPTIMISM_CHAIN_SELECTOR = 2664363617261496610;
     uint64 constant POLYGON_CHAIN_SELECTOR = 12532609583862916517;
 
     uint256[3] SAVINGS_TARGET = [20e18, 2e18, 3e18];
+    uint256[3] GROUP_SAVING_TARGET = [5e18, 5e18, 5e18];
 
-    /**
-     * @notice setUp function for testing
-     */
+    ///setup function
     function setUp() external {
         DeployCollectiveCore deployer = new DeployCollectiveCore();
         (address aCollectiveCore, address oCollectiveCore, address pCollectiveCore, HelperConfig config) =
             deployer.run();
 
-        // initialze contracts with their addresses
         collectiveCoreAvalanche = CollectiveCoreAvalanche(aCollectiveCore);
         collectiveCoreOptimism = CollectiveCoreOptimism(oCollectiveCore);
         collectiveCorePolygon = CollectiveCorePolygon(pCollectiveCore);
 
-        // update the contract addresses on each chain
         console.log("Updating destination contract addresses for each contract...");
         collectiveCoreAvalanche.updateCollectiveCoreContractAddressForOtherChains_(oCollectiveCore, pCollectiveCore);
         collectiveCoreOptimism.updateCollectiveCoreContractAddressForOtherChains_(aCollectiveCore, pCollectiveCore);
         collectiveCorePolygon.updateCollectiveCoreContractAddressForOtherChains_(aCollectiveCore, oCollectiveCore);
 
-        // Mint Link To Contracts
         console.log("Minting Mock Link Tokens To Contracts...");
         HelperConfig.MockContracts memory mockContracts = config.getAnvilDeploymentParams();
         MockERC20(mockContracts.aLink).mint(address(collectiveCoreAvalanche), LINK_AMOUNT_TO_MINT);
@@ -78,20 +84,16 @@ contract CollectiveCoreUnitTest is Test {
         MockERC20(mockContracts.pLink).mint(address(collectiveCorePolygon), LINK_AMOUNT_TO_MINT);
     }
 
-    ///////////////////////////
-    ///// HELPER FUNCTIONS ////
-    ///////////////////////////
+    ///////////////////////////////////////
+    ///// HELPER FUNCTIONS FOR TESTING ////
+    ///////////////////////////////////////
 
-    /**
-     * @notice mints a specified asset to a particular user with a specified amount for testing
-     */
+    /// mints asset to user
     function _mintAssetToUser(address user, address asset, uint256 amount) internal {
         MockERC20(asset).mint(user, amount);
     }
 
-    /**
-     * get the amount a pool is to be increased by
-     */
+    /// gets the amount to increase the pool by
     function _getAmountToIncreasePoolBy(uint256 usersSavingBalance, uint256 DEFAULT_FEE, address priceFeed)
         public
         view
@@ -104,9 +106,7 @@ contract CollectiveCoreUnitTest is Test {
         return usdtTakenFromUser;
     }
 
-    /**
-     * get users amount refunded after fee has been collected
-     */
+    /// gets the users amount refunded after fee has been collected on breaking savings
     function _getUserAmountRefundedAfterSavingsBreak(uint256 usersSavingBalance, uint256 DEFAULT_FEE)
         public
         pure
@@ -116,10 +116,7 @@ contract CollectiveCoreUnitTest is Test {
         return expectedAmountRefunded;
     }
 
-    /**
-     * @notice tops up users savings
-     */
-
+    /// tops up users saings
     function _topUpUserSavings(address user, uint256 amount, uint64 chainToTopUp) internal {
         vm.startPrank(user);
 
@@ -146,25 +143,14 @@ contract CollectiveCoreUnitTest is Test {
         vm.stopPrank();
     }
 
+    // fulfills the users saving target by topping up
     function _fulfillDefaultTargets(address user) internal {
         _topUpUserSavings(user, SAVINGS_TARGET[0] - SAVINGS_AMOUNT, AVALANCHE_CHAIN_SELECTOR);
         _topUpUserSavings(user, SAVINGS_TARGET[1], OPTIMISM_CHAIN_SELECTOR);
         _topUpUserSavings(user, SAVINGS_TARGET[2], POLYGON_CHAIN_SELECTOR);
     }
 
-    // Other func to implement
-    // deposit usdt
-    // reedem usdt
-    // withdraw etc
-
-    /**
-     * @notice top up savings
-     */
-
-    ////////////////////////
-    /////// RE-USERS ///////
-    ////////////////////////
-
+    // start savings avalanche
     function _startSavingsAvax(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
         internal
     {
@@ -176,6 +162,7 @@ contract CollectiveCoreUnitTest is Test {
         vm.stopPrank();
     }
 
+    // start savings optimsim
     function _startSavingsOptimism(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
         internal
     {
@@ -187,6 +174,7 @@ contract CollectiveCoreUnitTest is Test {
         vm.stopPrank();
     }
 
+    // start savings polygon
     function _startSavingsPolygon(address user, uint256 amount, uint256[3] memory savingsTarget, uint256 savingTime)
         internal
     {
@@ -198,27 +186,60 @@ contract CollectiveCoreUnitTest is Test {
         vm.stopPrank();
     }
 
+    // break savings avalanche
     function _breakSavingsOnAvax(address user) internal {
         vm.startPrank(user);
         collectiveCoreAvalanche.breakSavings();
         vm.stopPrank();
     }
 
+    // break savings optimsim
     function _breakSavingsOnOptimism(address user) internal {
         vm.startPrank(user);
         collectiveCoreOptimism.breakSavings();
         vm.stopPrank();
     }
 
+    // break savings polygon
     function _breakSavingsOnPolygon(address user) internal {
         vm.startPrank(user);
         collectiveCorePolygon.breakSavings();
         vm.stopPrank();
     }
 
-    /**
-     * @notice Succesfull start saving with wAVAX
-     */
+    // contribute to group savings
+    function _contributeToGroupSavingsOnAvalanche(address user, uint256 amount, uint256 groupID) internal {
+        vm.startPrank(user);
+        address asset = collectiveCoreAvalanche.s_wAVAX();
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCoreAvalanche), amount);
+        collectiveCoreAvalanche.contributeToGroup(groupID, amount);
+        vm.stopPrank();
+    }
+
+    function _contributeToGroupSavingsOnOptimism(address user, uint256 amount, uint256 groupID) internal {
+        vm.startPrank(user);
+        address asset = collectiveCoreOptimism.s_wOP();
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCoreOptimism), amount);
+        collectiveCoreOptimism.contributeToGroup(groupID, amount);
+        vm.stopPrank();
+    }
+
+    function _contributeToGroupSavingsOnPolygon(address user, uint256 amount, uint256 groupID) internal {
+        vm.startPrank(user);
+        address asset = collectiveCorePolygon.s_wMATIC();
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCorePolygon), amount);
+        collectiveCorePolygon.contributeToGroup(groupID, amount);
+        vm.stopPrank();
+    }
+
+    ////////////////////////////////////////
+    /////// HELPEFUL TEST MODIFIERS ///////
+    ///////////////////////////////////////
+
+    /// start svaings with avalanche
     modifier startSavingsWithAvax(address user) {
         address asset = collectiveCoreAvalanche.s_wAVAX();
         vm.startPrank(user);
@@ -231,9 +252,7 @@ contract CollectiveCoreUnitTest is Test {
         _;
     }
 
-    /**
-     * @notice Succesfull start saving with wOP eth
-     */
+    /// start savings with optimism
     modifier startSavingsWithOptimsim(address user) {
         address asset = collectiveCoreOptimism.s_wOP();
         vm.startPrank(user);
@@ -246,9 +265,7 @@ contract CollectiveCoreUnitTest is Test {
         _;
     }
 
-    /**
-     * @notice Succesfull start saving with wOP eth
-     */
+    /// start savings with polygon
     modifier startSavingsWithPolygon(address user) {
         address asset = collectiveCorePolygon.s_wMATIC();
         vm.startPrank(user);
@@ -261,9 +278,7 @@ contract CollectiveCoreUnitTest is Test {
         _;
     }
 
-    /**
-     * @notice deposit usdt to avalanche contract
-     */
+    /// deposit usdt as CP to Avalanche
     modifier depositUSDTToAvalanche(address user) {
         address asset = collectiveCoreAvalanche.s_usdt();
         vm.startPrank(user);
@@ -274,10 +289,7 @@ contract CollectiveCoreUnitTest is Test {
         _;
     }
 
-    /*
-     * @notice deposit usdt to optimism contract
-     */
-
+    /// deposit usdt as CP to Optimism
     modifier depositUSDToOptimsim(address user) {
         address asset = collectiveCoreOptimism.s_usdt();
         vm.startPrank(user);
@@ -288,10 +300,7 @@ contract CollectiveCoreUnitTest is Test {
         _;
     }
 
-    /*
-     * @notice deposit usdt to polygon contract
-     */
-
+    /// deposit usdt as CP to Polygon
     modifier depositUSDToPolygon(address user) {
         address asset = collectiveCorePolygon.s_usdt();
         vm.startPrank(user);
@@ -299,6 +308,20 @@ contract CollectiveCoreUnitTest is Test {
         MockERC20(asset).approve(address(collectiveCorePolygon), DEPOSIT_USDT_AMOUNT);
         collectiveCorePolygon.depositUSDT(DEPOSIT_USDT_AMOUNT);
         vm.stopPrank();
+        _;
+    }
+
+    ///@notice creates group savings
+    modifier createGroupSavings(address user, uint256 amount) {
+        address asset = collectiveCoreAvalanche.s_wAVAX();
+        vm.startPrank(user);
+        _mintAssetToUser(user, asset, amount);
+        MockERC20(asset).approve(address(collectiveCoreAvalanche), amount);
+        collectiveCoreAvalanche.createGroupSavings(
+            amount, GROUP_SAVING_REASON, GROUP_SAVING_RECIPIENT, GROUP_SAVING_TIME, GROUP_SAVING_TARGET
+        );
+        vm.stopPrank();
+
         _;
     }
 }

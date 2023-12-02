@@ -35,6 +35,17 @@ interface ICollectiveCore {
     error CollectiveCore__CannotWithdrawOnThisChain();
     error CollectiveCore__CanOnlyWithdrawAnExistingSaving();
     error CollectiveCore__CannotUpdateDestinationChainContractAddress();
+    error CollectiveCore__CannotCreateGroupSavingsOnThisChain();
+    error CollectiveCore__CannotJoinGroupSavingsAnymore();
+    error CollectiveCore__SavingsGroupDoesNotExist();
+    error CollectiveCore__GroupSavingsTimeHasntArrived();
+    error CollectiveCore__OnlyContributorsCanDispatchFunds();
+    error CollectiveCore__GroupDidNotMeetSavingsTarget();
+    error CollectiveCore__GroupSavingsActiveStatusIsFalse();
+    error CollectiveCore__CannotClaimContribution();
+    error CollectiveCore__NotAMemberOfThisGroup();
+    error CollectiveCore__GroupSavingsAlreadyDispatched();
+    error CollectiveCore__ContributionAlreadyClaimed();
 
     event StartedSaving(
         address user,
@@ -79,6 +90,19 @@ interface ICollectiveCore {
         uint256 IOU_USDT;
         uint256 totalUSDT;
         uint256 unlockPeriod;
+    }
+
+    // Group Savings Details
+    struct GroupSavingDetails {
+        uint256 groupID;
+        string purpose;
+        address creator;
+        address recipient;
+        uint256 savingStartTime;
+        uint256 savingStopTime;
+        uint256 members;
+        CrossChainAssets target;
+        CrossChainAssets amountRaised;
     }
 
     /**
@@ -131,13 +155,40 @@ interface ICollectiveCore {
     //////// GROUP REALTED FUNCTIONS ////////
     ////////////////////////////////////////
 
-    function createGroupSavings() external;
+    /**
+     * @notice creates a group saving across chain for users to join from any supported chain of their choice
+     * @dev should revert if called from any chain that isnt avalanche.
+     * @param amount The amount deposited for saving on initiation of group
+     * @param purpose The purpose for creating the group savings
+     * @param recipient The recipient of the funds at the end of the group savings
+     * @param time The time set to meet the savings target
+     * @param targets The saving target for the group accross chain
+     */
+    function createGroupSavings(
+        uint256 amount,
+        string memory purpose,
+        address recipient,
+        uint256 time,
+        uint256[3] memory targets
+    ) external;
 
-    function joinGroupSavings() external;
+    /**
+     * @notice Allows a user to contribute to an existing group savings
+     * @param groupID The gorup ID
+     * @param amount The contribution amount
+     *
+     */
+    function contributeToGroup(uint256 groupID, uint256 amount) external;
 
-    function contribute() external;
+    /**
+     * @notice Allows a user to dispatch all the savings in a particular group to the groups sepcified recipient
+     * @param groupID The group ID.
+     */
+    function dispatchGroupFundsToRecipient(uint256 groupID) external;
 
-    function dispatchAll() external;
-
-    function claimContribution() external;
+    /**
+     * @notice Allows a user to claim their contribution with the fee taken when a group fails to meet its saving requirement in the specified time
+     *  @param groupID The group ID
+     */
+    function claimGroupContribution(uint256 groupID) external;
 }
