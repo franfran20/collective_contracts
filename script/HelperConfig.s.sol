@@ -100,7 +100,7 @@ contract HelperConfig is Script {
         LiveNetworkConfig memory avalancheNetworkConfig = LiveNetworkConfig({
             wrappedAsset: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
             router: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
-            link: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
+            link: 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846,
             avaxUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
             opEthUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,
             maticUsdPriceFeed: 0x29ab7f54e024CB43fe2B2CA792691791c71b3416,

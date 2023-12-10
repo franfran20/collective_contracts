@@ -83,9 +83,8 @@ contract GroupSavingsUnitTest is CollectiveCoreUnitTest {
         public
         createGroupSavings(USER_ONE, GROUP_SAVING_START_AMOUNT)
     {
-        uint256 index = 0;
         ICollectiveCore.GroupSavingDetails memory groupSavingDetails =
-            collectiveCoreAvalanche.getGroupSavingDetailByIndex(index);
+            collectiveCoreAvalanche.getGroupSavingDetailByID(GROUP_ID_ONE);
 
         assertEq(groupSavingDetails.groupID, 1);
         assertEq(groupSavingDetails.purpose, GROUP_SAVING_REASON);
@@ -120,10 +119,9 @@ contract GroupSavingsUnitTest is CollectiveCoreUnitTest {
         public
         createGroupSavings(USER_ONE, GROUP_SAVING_START_AMOUNT)
     {
-        uint256 index = 0;
         uint256 groupID = 1;
         ICollectiveCore.GroupSavingDetails memory groupSavingDetails =
-            collectiveCorePolygon.getGroupSavingDetailByIndex(index);
+            collectiveCorePolygon.getGroupSavingDetailByID(GROUP_ID_ONE);
         bool status = collectiveCoreAvalanche.getUserMemebrshipStatus(groupID, USER_ONE);
 
         uint256 userOneContribution = collectiveCorePolygon.getUserGroupContribution(GROUP_ID_ONE, USER_ONE).wAVAX;
@@ -195,9 +193,8 @@ contract GroupSavingsUnitTest is CollectiveCoreUnitTest {
         uint256 contractBalanceAfterContribution = MockERC20(asset).balanceOf(address(collectiveCoreAvalanche));
         bool userMembershipAfterContribution = collectiveCoreAvalanche.getUserMemebrshipStatus(GROUP_ID_ONE, USER_TWO);
 
-        uint256 index = 0;
         ICollectiveCore.GroupSavingDetails memory groupSavingDetails =
-            collectiveCorePolygon.getGroupSavingDetailByIndex(index);
+            collectiveCorePolygon.getGroupSavingDetailByID(GROUP_ID_ONE);
 
         uint256 userTwoContribution = collectiveCoreAvalanche.getUserGroupContribution(GROUP_ID_ONE, USER_TWO).wAVAX;
 
@@ -218,9 +215,8 @@ contract GroupSavingsUnitTest is CollectiveCoreUnitTest {
 
         bool userMembershipOnAnotherChain = collectiveCoreOptimism.getUserMemebrshipStatus(GROUP_ID_ONE, USER_TWO);
 
-        uint256 index = 0;
         ICollectiveCore.GroupSavingDetails memory groupSavingDetails =
-            collectiveCorePolygon.getGroupSavingDetailByIndex(index);
+            collectiveCorePolygon.getGroupSavingDetailByID(GROUP_ID_ONE);
 
         uint256 userAvaxContribution = collectiveCoreOptimism.getUserGroupContribution(GROUP_ID_ONE, USER_ONE).wAVAX;
         uint256 userMaticContribution = collectiveCoreAvalanche.getUserGroupContribution(GROUP_ID_ONE, USER_TWO).wMATIC;

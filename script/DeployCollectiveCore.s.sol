@@ -15,9 +15,6 @@ contract DeployCollectiveCore is Script {
     uint256 constant OPTIMSIM_TESTNET_CHAIN_ID = 420;
     uint256 constant POLYGON_POS_TESTNET_CHAIN_ID = 80001;
 
-    uint256 DEFAULT_PRIVATE_KEY = vm.envUint("DEFAULT_ANVIL_PRIVATE_KEY");
-    uint256 PRIVATE_KEY = vm.envUint("PRIVATE_KEY");
-
     function run()
         external
         returns (address aCollectiveCore, address oCollectiveCore, address pCollectiveCore, HelperConfig config)
@@ -47,27 +44,30 @@ contract DeployCollectiveCore is Script {
         }
 
         if (block.chainid == AVALANCHE_TESTNET_CHAIN_ID) {
-            vm.startBroadcast(PRIVATE_KEY);
-            CollectiveCoreAvalanche collectiveCoreAvalanche =
-            new CollectiveCoreAvalanche(wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap);
+            vm.startBroadcast();
+            CollectiveCoreAvalanche collectiveCoreAvalanche = new CollectiveCoreAvalanche(
+                wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap
+            );
             vm.stopBroadcast();
 
             return (address(collectiveCoreAvalanche), address(0), address(0), helperConfig);
         }
 
         if (block.chainid == OPTIMSIM_TESTNET_CHAIN_ID) {
-            vm.startBroadcast(PRIVATE_KEY);
-            CollectiveCoreOptimism collectiveCoreOptimism =
-            new CollectiveCoreOptimism(wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap);
+            vm.startBroadcast();
+            CollectiveCoreOptimism collectiveCoreOptimism = new CollectiveCoreOptimism(
+                wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap
+            );
             vm.stopBroadcast();
 
             return (address(collectiveCoreOptimism), address(0), address(0), helperConfig);
         }
 
         if (block.chainid == POLYGON_POS_TESTNET_CHAIN_ID) {
-            vm.startBroadcast(PRIVATE_KEY);
-            CollectiveCorePolygon collectiveCorePolygon =
-            new CollectiveCorePolygon(wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap);
+            vm.startBroadcast();
+            CollectiveCorePolygon collectiveCorePolygon = new CollectiveCorePolygon(
+                wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap
+            );
             vm.stopBroadcast();
 
             return (address(collectiveCorePolygon), address(0), address(0), helperConfig);
@@ -76,23 +76,47 @@ contract DeployCollectiveCore is Script {
 
     // deploy to anvil
     function _deployToAnvil(HelperConfig helperConfig) internal returns (address, address, address) {
-        vm.startBroadcast(DEFAULT_PRIVATE_KEY);
+        vm.startBroadcast();
 
         HelperConfig.MockContracts memory mockContracts = helperConfig.getAnvilDeploymentParams();
 
         (address aPriceFeedMock, address oPriceFeedMock, address pPriceFeedMock) = helperConfig.anvilPriceFeedMocks();
         (address aFranFranSwap, address oFranFranSwap, address pFranFranSwap) = helperConfig.getSwapContracts();
 
-        CollectiveCoreAvalanche collectiveCoreAvalanche =
-        new CollectiveCoreAvalanche(mockContracts.wAVAX, mockContracts.router, mockContracts.aLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.aUsdt, aFranFranSwap);
+        CollectiveCoreAvalanche collectiveCoreAvalanche = new CollectiveCoreAvalanche(
+            mockContracts.wAVAX,
+            mockContracts.router,
+            mockContracts.aLink,
+            aPriceFeedMock,
+            oPriceFeedMock,
+            pPriceFeedMock,
+            mockContracts.aUsdt,
+            aFranFranSwap
+        );
         console.log("Deployed Collective Core Avalanche: ", address(collectiveCoreAvalanche));
 
-        CollectiveCoreOptimism collectiveCoreOptimism =
-        new CollectiveCoreOptimism(mockContracts.wOP, mockContracts.router, mockContracts.oLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.oUsdt, oFranFranSwap);
+        CollectiveCoreOptimism collectiveCoreOptimism = new CollectiveCoreOptimism(
+            mockContracts.wOP,
+            mockContracts.router,
+            mockContracts.oLink,
+            aPriceFeedMock,
+            oPriceFeedMock,
+            pPriceFeedMock,
+            mockContracts.oUsdt,
+            oFranFranSwap
+        );
         console.log("Deployed Collective Core Optimism: ", address(collectiveCoreOptimism));
 
-        CollectiveCorePolygon collectiveCorePolygon =
-        new CollectiveCorePolygon(mockContracts.wMATIC, mockContracts.router, mockContracts.pLink, aPriceFeedMock, oPriceFeedMock, pPriceFeedMock, mockContracts.pUsdt, pFranFranSwap);
+        CollectiveCorePolygon collectiveCorePolygon = new CollectiveCorePolygon(
+            mockContracts.wMATIC,
+            mockContracts.router,
+            mockContracts.pLink,
+            aPriceFeedMock,
+            oPriceFeedMock,
+            pPriceFeedMock,
+            mockContracts.pUsdt,
+            pFranFranSwap
+        );
         console.log("Deployed Collective Core Polygon: ", address(collectiveCorePolygon));
 
         vm.stopBroadcast();
