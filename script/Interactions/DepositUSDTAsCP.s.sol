@@ -20,9 +20,9 @@ contract DepositUSDTAsCP is Script {
     uint256 AMOUNT = 50e18;
 
     function run() external {
-        depositUSDT(AMOUNT, AVALANCHE_CHAIN_NAME);
+        // depositUSDT(AMOUNT, AVALANCHE_CHAIN_NAME);
         depositUSDT(AMOUNT, POLYGON_CHAIN_NAME);
-        depositUSDT(AMOUNT, OPTIMISM_CHAIN_NAME);
+        // depositUSDT(AMOUNT, OPTIMISM_CHAIN_NAME);
     }
 
     function depositUSDT(uint256 amount, string memory chainName) public {

@@ -23,7 +23,7 @@ contract ApproveTokensScript is Script {
     string USDT_NAME = "USDT";
 
     // params
-    uint256 AMOUNT = 50e18;
+    uint256 AMOUNT = 100e18;
 
     function run() external {
         address collectiveAddressAvalanche =
@@ -33,8 +33,12 @@ contract ApproveTokensScript is Script {
         address collectiveAddressPolygon =
             DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
+        // collective core avalanche: 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce
+        // collective core optimism: 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37
+        // collective core polygon:0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831
+
         //
-        approveToken(USDT_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        approveToken(USDT_NAME, 0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831, AMOUNT, AVALANCHE_CHAIN_NAME);
         approveToken(USDT_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
         approveToken(USDT_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
     }
@@ -85,8 +89,13 @@ contract ApproveTokensScript is Script {
             asset = usdt;
         }
 
+        // deploy usdt token
+        // avalanche: 0x9F6e36A08315c6890FE402799176cd7748FcB695
+        // optimism: 0xEF53020fEb7b71E4B700531894991Cc7Ca553fb4
+        // polygon: 0xC88BDB5Dd8d18f847b85259329663AB6D3A0C367
+
         vm.startBroadcast();
-        MockERC20(asset).approve(to, amount);
+        MockERC20(0xC88BDB5Dd8d18f847b85259329663AB6D3A0C367).approve(to, amount);
         vm.stopBroadcast();
     }
 

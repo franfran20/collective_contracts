@@ -282,8 +282,15 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         (uint256 interestToAddToPool, uint256 opBufferAmount, uint256 maticBufferAmount) = _breakSavings(msg.sender);
         uint256 avaxBufferAmountNotInUse = 0;
 
+        s_totalSavers -= 1;
+
         bytes memory innerPayload = abi.encode(
-            interestToAddToPool, avaxBufferAmountNotInUse, opBufferAmount, maticBufferAmount, s_totalExpectedSaveTime
+            interestToAddToPool,
+            avaxBufferAmountNotInUse,
+            opBufferAmount,
+            maticBufferAmount,
+            s_totalExpectedSaveTime,
+            s_totalSavers
         );
         bytes memory encodedPayload = abi.encode(s_breakSavingsPath, innerPayload, s_avalancheChainSelector, msg.sender);
 
@@ -318,9 +325,14 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         s_totalChainSavings.wOP -= usersChainBalance.wOP;
         s_totalChainSavings.wMATIC -= usersChainBalance.wMATIC;
 
+        uint256 userSavingTime =
+            s_savingsDetails[msg.sender].savingsEndTime - s_savingsDetails[msg.sender].savingsStartTime;
+        s_totalExpectedSaveTime -= userSavingTime;
+
         _resetUserSavingsDetails(msg.sender);
 
-        bytes memory innerPayload = abi.encode(s_UsdtBalances.Avalanche, s_interestPoolBalance);
+        bytes memory innerPayload =
+            abi.encode(s_UsdtBalances.Avalanche, s_interestPoolBalance, s_totalSavers, s_totalExpectedSaveTime);
         bytes memory encodedPayload =
             abi.encode(s_withdrawSavingsPath, innerPayload, s_avalancheChainSelector, msg.sender);
 
@@ -676,7 +688,7 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
             receiver: abi.encode(receiverContractAddress),
             data: encodedPayload,
             tokenAmounts: new Client.EVMTokenAmount[](0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 200_000})),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 600_000})),
             feeToken: address(s_linkToken)
         });
 
@@ -836,12 +848,14 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
             uint256 avaxBufferAmount,
             uint256 opBufferAmount,
             uint256 maticBufferAmount,
-            uint256 newTotalExpectedSaveTime
-        ) = abi.decode(breakSavingsPayload, (uint256, uint256, uint256, uint256, uint256));
+            uint256 newTotalExpectedSaveTime,
+            uint256 totalSavers
+        ) = abi.decode(breakSavingsPayload, (uint256, uint256, uint256, uint256, uint256, uint256));
 
         s_totalExpectedSaveTime = newTotalExpectedSaveTime;
         s_interestPoolBalance += interestAddedToSourcePool + avaxBufferAmount + opBufferAmount + maticBufferAmount;
         ICollectiveCore.CrossChainAssets memory userSavingBalance = getUserSavingsDetails(user).savingsBalance;
+        s_totalSavers = totalSavers;
 
         if (userSavingBalance.wAVAX > 0) {
             uint256 avaxTakenFromUser = (userSavingBalance.wAVAX * AVALANCHE_DEFAULT_FEE) / 100;
@@ -877,10 +891,16 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         bytes memory withdrawSavingsPayload,
         uint64 sourceChainSelector
     ) internal {
-        (uint256 updatedUsdtBalancesFromSourceChain, uint256 interestPoolBalance) =
-            abi.decode(withdrawSavingsPayload, (uint256, uint256));
+        (
+            uint256 updatedUsdtBalancesFromSourceChain,
+            uint256 interestPoolBalance,
+            uint256 totalSavers,
+            uint256 totalExpectedSaveTime
+        ) = abi.decode(withdrawSavingsPayload, (uint256, uint256, uint256, uint256));
 
         s_interestPoolBalance = interestPoolBalance;
+        s_totalSavers = totalSavers;
+        s_totalExpectedSaveTime = totalExpectedSaveTime;
 
         if (sourceChainSelector == s_optimismChainSelector) {
             s_UsdtBalances.Optimism = updatedUsdtBalancesFromSourceChain;
@@ -1191,6 +1211,11 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         }
     }
 
+    /// @notice checks to see if a group savings have been dispatched
+    function getGroupDispatchStatus(uint256 groupID) public view returns (bool) {
+        return s_dispatched[groupID];
+    }
+
     /// @notice gets the current block timestamp
     function getBlockTimestamp() public view returns (uint256) {
         return block.timestamp;
@@ -1326,6 +1351,8 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         if (block.timestamp < groupSavingStopTime) {
             revert CollectiveCore__GroupSavingsTimeHasntArrived();
         }
+
+        bool didNotMeetTarget;
 
         CrossChainAssets memory groupAmountRaised = groupSavingDetails[groupID - 1].amountRaised;
         CrossChainAssets memory groupSavingsTarget = groupSavingDetails[groupID - 1].target;

@@ -15,20 +15,22 @@ contract UpdateAddressesScript is Script {
     string OPTIMISM_CHAIN_NAME = "OPTIMISM";
     string POLYGON_CHAIN_NAME = "POLYGON";
 
-    // params
-    uint256 AMOUNT = 1e18;
-    uint256 TIME = 3600;
-    string REASON = "To save the cupcakes";
-    uint256[3] TARGET = [3e18, 3e18, 3e18];
-
     function run() external {
         updateCollectiveCoreContractAddressForOtherChains_(AVALANCHE_CHAIN_NAME);
         updateCollectiveCoreContractAddressForOtherChains_(OPTIMISM_CHAIN_NAME);
         updateCollectiveCoreContractAddressForOtherChains_(POLYGON_CHAIN_NAME);
     }
 
+    // collective core avalanche: 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce
+    // collective core optimism: 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37
+    // collective core polygon:0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831
+
     function updateCollectiveCoreContractAddressForOtherChains_(string memory chainName) public {
         address collectiveAddress = getCollectiveAddress(chainName);
+
+        // address optimismContractAddress = 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37;
+        // address polygonContractAddress = 0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831;
+        // address avalancheContractAddress = 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce;
 
         address optimismContractAddress =
             DevOpsTools.get_most_recent_deployment("CollectiveCoreOptimism", block.chainid);

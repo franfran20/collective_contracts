@@ -13,7 +13,7 @@ contract DispatchGroupFundsScript is Script {
     string POLYGON_CHAIN_NAME = "POLYGON";
 
     // params
-    uint256 GROUP_ID = 1;
+    uint256 GROUP_ID = 2;
 
     function run() external {
         //
@@ -29,7 +29,7 @@ contract DispatchGroupFundsScript is Script {
         vm.stopBroadcast();
     }
 
-   function getCollectiveAddress(string memory chainName) public view returns (address) {
+    function getCollectiveAddress(string memory chainName) public view returns (address) {
         address collectiveAddress;
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(AVALANCHE_CHAIN_NAME))) {
             collectiveAddress = DevOpsTools.get_most_recent_deployment("CollectiveCoreAvalanche", block.chainid);
@@ -41,6 +41,6 @@ contract DispatchGroupFundsScript is Script {
             revert("Unsupported Chain ID");
         }
 
-           return collectiveAddress;
+        return collectiveAddress;
     }
 }

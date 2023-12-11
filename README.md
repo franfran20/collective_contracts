@@ -1,40 +1,21 @@
-# Things To Do Next
+# COLLECTIVE: CROSS CHAIN SAVINGS
 
--Things To Fix And Test
+## What is Collective?
 
-1. The get user saving percentage function: re test
-2. Retest get users share in interest pool
-3. Remove get group saving perecntage bar
+Collective is a cross chain smart contract powered cross chain savings application built with chainlink CCIP. It allows users to engage in savings on its supported and enjoy the benefits of being cross chain.
 
-<!-- FUNCTIONS -->
+Collective allows users who stick to their long term savings goals and target earn passive interest from a cross chain pool generated mathematically from activity of users across the chains.
 
-<!-- - update contract addresses -->
+The standout features of the application are its cross chain interepobility, interest genereation process, distribution and general status handling. Currently deployed on testnet of Optimism, Avalanche and Polygon.
 
-<!-- - mint user a particular asset -->
+## Why Collective?
 
-<!-- - deposit link into contract -->
+With the increased need for cross-chain powered applications. Regardless of the chain a user is on, Collective aims to take use of the potential provided by crosschain capabilities to capture actual yield for its users and not single their benefits to a single chain.
 
-<!-- - start savings -->
+Collective has a realisitic approach to its interest generation mechanism and does not produce interest out of thin air, rather we make use of a `backslide` pool to share interest, where users who keep to their expected save time and reach their savings target are elligible to interest from the pool, the longer your save time, the more share you posses in the pool while users who wish to opt out of their savings early are free to do so at the cost of a percentage fee of what they had saving which goes into the `backslide` pool. Get the picture now?
 
-<!-- - break savings -->
-<!-- - top up savings -->
-<!-- - withdraw savings -->
+Users are incentivized to save and reach their savings target else they get slashed if they fail to do so and the fee taken from the slash goes into the pool to incentivize other users who actually complete their savin time and target.
 
-<!-- - create group savings -->
+## A Good Example.
 
-<!-- - contibute to group saving -->
-
-<!-- - withdraw contribution -->
-  <!-- - dispatch funds -->
-  <!-- - get all recently deployed contracts -->
-
-NOTE:
-
-- ALLOW THE USER TO HAVE A ZERO SAVING TARGET ON A CHAIN
-- GET USER HAS WITHDRAWN CONTRIBUTION
-- TOTAL SAVERS ARE NOT BEING DEDUCTED ON BREAK AND WITHDRAW SAVE
-- HANDLE GET DISPATCHED STATUS
-
-<!-- cast rpc evm_setNextBlockTimestamp 1702196000 --rpc-url $
-ANVIL_RPC_URL -->
-<!-- cast rpc evm_mine --rpc-url $ANVIL_RPC_URL -->
+Say we have 4 four friends

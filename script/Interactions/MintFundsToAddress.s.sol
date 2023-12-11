@@ -39,18 +39,21 @@ contract MintFundsToAddress is Script {
         address collectiveAddressPolygon =
             DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
-        //
-        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
-        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
-        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, AVALANCHE_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, OPTIMISM_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, POLYGON_CHAIN_NAME);
 
-        // mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
-        // mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
-        // mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
 
-        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
+        mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
+        mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+
+        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, AVALANCHE_CHAIN_NAME);
+        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, OPTIMISM_CHAIN_NAME);
+        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, POLYGON_CHAIN_NAME);
     }
 
     function mintFundsToUser(string memory assetName, address to, uint256 amount, string memory chainName) public {

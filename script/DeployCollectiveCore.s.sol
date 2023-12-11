@@ -43,6 +43,7 @@ contract DeployCollectiveCore is Script {
             );
         }
 
+        // collective core avalanche: 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce
         if (block.chainid == AVALANCHE_TESTNET_CHAIN_ID) {
             vm.startBroadcast();
             CollectiveCoreAvalanche collectiveCoreAvalanche = new CollectiveCoreAvalanche(
@@ -50,9 +51,12 @@ contract DeployCollectiveCore is Script {
             );
             vm.stopBroadcast();
 
+            console.log("Collective Core Deployed At: ", address(collectiveCoreAvalanche));
+
             return (address(collectiveCoreAvalanche), address(0), address(0), helperConfig);
         }
 
+        // collective core optimism: 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37
         if (block.chainid == OPTIMSIM_TESTNET_CHAIN_ID) {
             vm.startBroadcast();
             CollectiveCoreOptimism collectiveCoreOptimism = new CollectiveCoreOptimism(
@@ -60,15 +64,20 @@ contract DeployCollectiveCore is Script {
             );
             vm.stopBroadcast();
 
+            console.log("Collective Core Deployed At: ", address(collectiveCoreOptimism));
+
             return (address(collectiveCoreOptimism), address(0), address(0), helperConfig);
         }
 
+        // collective core polygon:0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831
         if (block.chainid == POLYGON_POS_TESTNET_CHAIN_ID) {
             vm.startBroadcast();
             CollectiveCorePolygon collectiveCorePolygon = new CollectiveCorePolygon(
                 wrappedAsset, router, link, avaxUsdPriceFeed, opEthUsdPriceFeed, maticUsdPriceFeed, usdt, franfranSwap
             );
             vm.stopBroadcast();
+
+            console.log("Collective Core Deployed At: ", address(collectiveCorePolygon));
 
             return (address(collectiveCorePolygon), address(0), address(0), helperConfig);
         }
