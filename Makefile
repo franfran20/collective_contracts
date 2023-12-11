@@ -35,5 +35,4 @@ withdraw-savings:; forge script script/Interactions/WithdrawSavings.s.sol --rpc-
 
 get-user-info:; forge script script/Interactions/UserSavingsInfo.s.sol --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_ACCOUNT_ONE) --broadcast
 
-
-
+deposit-usdt:; forge script script/Interactions/DepositUSDTAsCP.s.sol --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_ACCOUNT_ONE) --broadcast

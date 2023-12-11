@@ -20,9 +20,10 @@ contract ApproveTokensScript is Script {
     // asset name
     string LINK_NAME = "Link";
     string WRAPPED_ASSET_NAME = "Wrapped Asset";
+    string USDT_NAME = "USDT";
 
     // params
-    uint256 AMOUNT = 5e18;
+    uint256 AMOUNT = 50e18;
 
     function run() external {
         address collectiveAddressAvalanche =
@@ -33,7 +34,9 @@ contract ApproveTokensScript is Script {
             DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
         //
-        approveToken(WRAPPED_ASSET_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        approveToken(USDT_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        approveToken(USDT_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+        approveToken(USDT_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
     }
 
     function approveToken(string memory assetName, address to, uint256 amount, string memory chainName) public {
@@ -43,10 +46,13 @@ contract ApproveTokensScript is Script {
         address link;
         // wrapped asset
         address wrappedAsset;
+        // usdt
+        address usdt;
 
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(AVALANCHE_CHAIN_NAME))) {
             CollectiveCoreAvalanche collectiveCore = CollectiveCoreAvalanche(collectiveAddress);
             wrappedAsset = collectiveCore.s_wAVAX();
+            usdt = collectiveCore.s_usdt();
 
             LinkTokenInterface linkInterface = CollectiveCoreAvalanche(collectiveAddress).s_linkToken();
             link = address(linkInterface);
@@ -54,6 +60,7 @@ contract ApproveTokensScript is Script {
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(OPTIMISM_CHAIN_NAME))) {
             CollectiveCoreOptimism collectiveCore = CollectiveCoreOptimism(collectiveAddress);
             wrappedAsset = collectiveCore.s_wOP();
+            usdt = collectiveCore.s_usdt();
 
             LinkTokenInterface linkInterface = CollectiveCoreOptimism(collectiveAddress).s_linkToken();
             link = address(linkInterface);
@@ -61,6 +68,7 @@ contract ApproveTokensScript is Script {
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(POLYGON_CHAIN_NAME))) {
             CollectiveCorePolygon collectiveCore = CollectiveCorePolygon(collectiveAddress);
             wrappedAsset = collectiveCore.s_wMATIC();
+            usdt = collectiveCore.s_usdt();
 
             LinkTokenInterface linkInterface = CollectiveCorePolygon(collectiveAddress).s_linkToken();
             link = address(linkInterface);
@@ -72,6 +80,9 @@ contract ApproveTokensScript is Script {
         }
         if (keccak256(abi.encodePacked(assetName)) == keccak256(abi.encodePacked(WRAPPED_ASSET_NAME))) {
             asset = wrappedAsset;
+        }
+        if (keccak256(abi.encodePacked(assetName)) == keccak256(abi.encodePacked(USDT_NAME))) {
+            asset = usdt;
         }
 
         vm.startBroadcast();

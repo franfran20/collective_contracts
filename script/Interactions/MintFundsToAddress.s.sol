@@ -20,6 +20,7 @@ contract MintFundsToAddress is Script {
     // asset name
     string LINK_NAME = "Link";
     string WRAPPED_ASSET_NAME = "Wrapped Asset";
+    string USDT_NAME = "USDT";
 
     // users
     address ANVIL_USER_ONE = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -39,13 +40,17 @@ contract MintFundsToAddress is Script {
             DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
         //
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
 
-        mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+        // mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+
+        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
     }
 
     function mintFundsToUser(string memory assetName, address to, uint256 amount, string memory chainName) public {
@@ -55,10 +60,13 @@ contract MintFundsToAddress is Script {
         address link;
         // wrapped asset
         address wrappedAsset;
+        // usdt
+        address usdt;
 
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(AVALANCHE_CHAIN_NAME))) {
             CollectiveCoreAvalanche collectiveCore = CollectiveCoreAvalanche(collectiveAddress);
             wrappedAsset = collectiveCore.s_wAVAX();
+            usdt = collectiveCore.s_usdt();
 
             LinkTokenInterface linkInterface = CollectiveCoreAvalanche(collectiveAddress).s_linkToken();
             link = address(linkInterface);
@@ -69,6 +77,7 @@ contract MintFundsToAddress is Script {
 
             LinkTokenInterface linkInterface = CollectiveCoreOptimism(collectiveAddress).s_linkToken();
             link = address(linkInterface);
+            usdt = collectiveCore.s_usdt();
         }
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(POLYGON_CHAIN_NAME))) {
             CollectiveCorePolygon collectiveCore = CollectiveCorePolygon(collectiveAddress);
@@ -76,6 +85,7 @@ contract MintFundsToAddress is Script {
 
             LinkTokenInterface linkInterface = CollectiveCorePolygon(collectiveAddress).s_linkToken();
             link = address(linkInterface);
+            usdt = collectiveCore.s_usdt();
         }
 
         address asset;
@@ -84,6 +94,9 @@ contract MintFundsToAddress is Script {
         }
         if (keccak256(abi.encodePacked(assetName)) == keccak256(abi.encodePacked(WRAPPED_ASSET_NAME))) {
             asset = wrappedAsset;
+        }
+        if (keccak256(abi.encodePacked(assetName)) == keccak256(abi.encodePacked(USDT_NAME))) {
+            asset = usdt;
         }
 
         vm.startBroadcast();
