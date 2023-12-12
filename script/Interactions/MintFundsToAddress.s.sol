@@ -28,10 +28,17 @@ contract MintFundsToAddress is Script {
     address ANVIL_USER_THREE = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
     address ANVIL_USER_FOUR = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
 
+
+    address USER_ONE_ADDRESS = 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e;
+
     // params
     uint256 AMOUNT = 100e18;
 
+ 
+
     function run() external {
+
+
         address collectiveAddressAvalanche =
             DevOpsTools.get_most_recent_deployment("CollectiveCoreAvalanche", block.chainid);
         address collectiveAddressOptimism =
@@ -39,21 +46,31 @@ contract MintFundsToAddress is Script {
         address collectiveAddressPolygon =
             DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, POLYGON_CHAIN_NAME);
+        // collective core avalanche:
+        // collective core optimism:
+        // collective core polygon:
 
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_THREE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_THREE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_THREE, AMOUNT, POLYGON_CHAIN_NAME);
 
-        mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_TWO, AMOUNT, POLYGON_CHAIN_NAME);
 
-        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, AVALANCHE_CHAIN_NAME);
-        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, OPTIMISM_CHAIN_NAME);
-        mintFundsToUser(USDT_NAME, 0x5F7FbE4bf8987FA77Ec6C22FD3f3d558B3b68D4e, AMOUNT, POLYGON_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(WRAPPED_ASSET_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
+
+
+        // mintFundsToUser(LINK_NAME, collectiveAddressAvalanche, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(LINK_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(LINK_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
+
+        
+        // mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // mintFundsToUser(USDT_NAME, ANVIL_USER_ONE, AMOUNT, POLYGON_CHAIN_NAME);
     }
 
     function mintFundsToUser(string memory assetName, address to, uint256 amount, string memory chainName) public {

@@ -26,21 +26,14 @@ contract ApproveTokensScript is Script {
     uint256 AMOUNT = 100e18;
 
     function run() external {
-        address collectiveAddressAvalanche =
-            DevOpsTools.get_most_recent_deployment("CollectiveCoreAvalanche", block.chainid);
-        address collectiveAddressOptimism =
-            DevOpsTools.get_most_recent_deployment("CollectiveCoreOptimism", block.chainid);
-        address collectiveAddressPolygon =
-            DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
 
-        // collective core avalanche: 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce
-        // collective core optimism: 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37
-        // collective core polygon:0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831
-
-        //
-        approveToken(USDT_NAME, 0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831, AMOUNT, AVALANCHE_CHAIN_NAME);
-        approveToken(USDT_NAME, collectiveAddressPolygon, AMOUNT, POLYGON_CHAIN_NAME);
-        approveToken(USDT_NAME, collectiveAddressOptimism, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // collective core avalanche: 0x045E96Ab338B4BAC9B6B2F00DB25e1E6c91EC154
+        // collective core optimism: 0xf3e30B0891521D595247AEB48F72105A4434B09E
+        // collective core polygon: 0x5A067dFAd546993fd2C546c3e989e7f5eDd414F6
+            
+        approveToken(USDT_NAME, 0x045E96Ab338B4BAC9B6B2F00DB25e1E6c91EC154, AMOUNT, AVALANCHE_CHAIN_NAME);
+        // approveToken(USDT_NAME, 0xf3e30B0891521D595247AEB48F72105A4434B09E, AMOUNT, OPTIMISM_CHAIN_NAME);
+        // approveToken(USDT_NAME, 0x5A067dFAd546993fd2C546c3e989e7f5eDd414F6, AMOUNT, POLYGON_CHAIN_NAME);
     }
 
     function approveToken(string memory assetName, address to, uint256 amount, string memory chainName) public {
@@ -58,7 +51,8 @@ contract ApproveTokensScript is Script {
             wrappedAsset = collectiveCore.s_wAVAX();
             usdt = collectiveCore.s_usdt();
 
-            LinkTokenInterface linkInterface = CollectiveCoreAvalanche(collectiveAddress).s_linkToken();
+            LinkTokenInterface linkInterface =
+                CollectiveCoreAvalanche(collectiveAddress).s_linkToken();
             link = address(linkInterface);
         }
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(OPTIMISM_CHAIN_NAME))) {
@@ -66,7 +60,8 @@ contract ApproveTokensScript is Script {
             wrappedAsset = collectiveCore.s_wOP();
             usdt = collectiveCore.s_usdt();
 
-            LinkTokenInterface linkInterface = CollectiveCoreOptimism(collectiveAddress).s_linkToken();
+            LinkTokenInterface linkInterface =
+                CollectiveCoreOptimism(collectiveAddress).s_linkToken();
             link = address(linkInterface);
         }
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(POLYGON_CHAIN_NAME))) {
@@ -74,7 +69,8 @@ contract ApproveTokensScript is Script {
             wrappedAsset = collectiveCore.s_wMATIC();
             usdt = collectiveCore.s_usdt();
 
-            LinkTokenInterface linkInterface = CollectiveCorePolygon(collectiveAddress).s_linkToken();
+            LinkTokenInterface linkInterface =
+                CollectiveCorePolygon(collectiveAddress).s_linkToken();
             link = address(linkInterface);
         }
 
@@ -89,13 +85,8 @@ contract ApproveTokensScript is Script {
             asset = usdt;
         }
 
-        // deploy usdt token
-        // avalanche: 0x9F6e36A08315c6890FE402799176cd7748FcB695
-        // optimism: 0xEF53020fEb7b71E4B700531894991Cc7Ca553fb4
-        // polygon: 0xC88BDB5Dd8d18f847b85259329663AB6D3A0C367
-
         vm.startBroadcast();
-        MockERC20(0xC88BDB5Dd8d18f847b85259329663AB6D3A0C367).approve(to, amount);
+        MockERC20(asset).approve(to, amount);
         vm.stopBroadcast();
     }
 

@@ -277,6 +277,7 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
     function breakSavings() external checkUserCanBreakSave(msg.sender) {
         uint256 userSavingTime =
             s_savingsDetails[msg.sender].savingsEndTime - s_savingsDetails[msg.sender].savingsStartTime;
+
         s_totalExpectedSaveTime -= userSavingTime;
 
         (uint256 interestToAddToPool, uint256 opBufferAmount, uint256 maticBufferAmount) = _breakSavings(msg.sender);
@@ -642,6 +643,10 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
             s_UsdtBalances.Polygon += maticBufferAmount;
         }
 
+        s_totalChainSavings.wOP -= userSavingBalance.wOP;
+        s_totalChainSavings.wAVAX -= userSavingBalance.wAVAX;
+        s_totalChainSavings.wMATIC -= userSavingBalance.wMATIC;
+
         _resetUserSavingsDetails(user);
 
         return (interestToAddToPool, opBufferAmount, maticBufferAmount);
@@ -688,7 +693,7 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
             receiver: abi.encode(receiverContractAddress),
             data: encodedPayload,
             tokenAmounts: new Client.EVMTokenAmount[](0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 600_000})),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 800_000})),
             feeToken: address(s_linkToken)
         });
 
@@ -867,6 +872,13 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
             s_UsdtBalances.Avalanche += avaxBufferAmount;
             IERC20(s_wAVAX).transfer(user, avaxToGiveUser);
         }
+
+        // s_savingsDetails[user].savingsBalance = CrossChainAssets(0, 0, 0);
+
+        CrossChainAssets memory userBalances = s_savingsDetails[user].savingsBalance;
+        s_totalChainSavings.wAVAX -= userBalances.wAVAX;
+        s_totalChainSavings.wOP -= userBalances.wOP;
+        s_totalChainSavings.wMATIC -= userBalances.wMATIC;
 
         _resetUserSavingsDetails(user);
 
@@ -1074,16 +1086,6 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         return s_savingsDetails[user];
     }
 
-    /// @notice getsthe cosmic provider details
-    function getCosmicProviderDetails(address cosmicProvider) public view returns (CosmicProvider memory) {
-        return s_cosmicProvider[cosmicProvider];
-    }
-
-    /// @notice gets the cosmic providers unlock period for withdrawal of deposited USDT
-    function getUnlockPeriod(address cosmicProvider) public view returns (uint256) {
-        return s_cosmicProvider[cosmicProvider].unlockPeriod;
-    }
-
     /// @notice gets the membership status of a user in a group saving
     function getUserMemebrshipStatus(uint256 groupID, address user) public view returns (bool) {
         return s_isMember[groupID][user];
@@ -1149,56 +1151,9 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         return percentage;
     }
 
-    /// @notice getsthe group saving details by group ID
-    function getGroupSavingDetailByID(uint256 groupID) public view returns (GroupSavingDetails memory) {
-        return groupSavingDetails[groupID - 1];
-    }
-
     ///@notice gets all the the groups
     function getOngoinGroupSavings() public view returns (GroupSavingDetails[] memory) {
         return groupSavingDetails;
-    }
-
-    ///@notice gets the group progres bar
-    function getGroupSavingCompletionPercentage(uint256 groupID) public view returns (uint256) {
-        GroupSavingDetails memory groupIDDetails = getGroupSavingDetailByID(groupID);
-        CrossChainAssets memory amountSaved = groupIDDetails.amountRaised;
-        CrossChainAssets memory target = groupIDDetails.target;
-
-        uint256 avaxPercentage;
-        uint256 opEthPercentage;
-        uint256 maticPercentage;
-
-        // Avax
-        if (amountSaved.wAVAX > 0) {
-            if (target.wAVAX > amountSaved.wAVAX * 100) {
-                avaxPercentage = 0;
-            } else {
-                avaxPercentage = (amountSaved.wAVAX * 100) / target.wAVAX;
-            }
-        }
-
-        // Op eth
-        if (amountSaved.wOP > 0) {
-            if (target.wOP > amountSaved.wOP * 100) {
-                opEthPercentage = 0;
-            } else {
-                opEthPercentage = (amountSaved.wOP * 100) / target.wOP;
-            }
-        }
-
-        // Matic
-        if (amountSaved.wMATIC > 0) {
-            if (target.wMATIC > amountSaved.wMATIC * 100) {
-                maticPercentage = 0;
-            } else {
-                maticPercentage = (amountSaved.wMATIC * 100) / target.wMATIC;
-            }
-        }
-
-        uint256 percentage = (avaxPercentage + opEthPercentage + maticPercentage) / 3;
-
-        return percentage;
     }
 
     /// @notice gets the group saving time left
@@ -1209,6 +1164,11 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         } else {
             return groupIDDetails.savingStopTime - block.timestamp;
         }
+    }
+
+    /// @notice getsthe group saving details by group ID
+    function getGroupSavingDetailByID(uint256 groupID) public view returns (GroupSavingDetails memory) {
+        return groupSavingDetails[groupID - 1];
     }
 
     /// @notice checks to see if a group savings have been dispatched
@@ -1234,10 +1194,6 @@ contract CollectiveCoreAvalanche is ICollectiveCore, CCIPReceiver {
         address optimismContractAddress,
         address polygonContractAddress
     ) external {
-        // if (locked) {
-        //     revert CollectiveCore__CannotUpdateDestinationChainContractAddress();
-        // }
-        // locked = true;
         s_optimismContractAddress = optimismContractAddress;
         s_polygonContractAddress = polygonContractAddress;
     }

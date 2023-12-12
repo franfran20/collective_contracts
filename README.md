@@ -16,6 +16,6 @@ Collective has a realisitic approach to its interest generation mechanism and do
 
 Users are incentivized to save and reach their savings target else they get slashed if they fail to do so and the fee taken from the slash goes into the pool to incentivize other users who actually complete their savin time and target.
 
-## A Good Example.
+# Components Of Collective
 
-Say we have 4 four friends
+## Saving Target & Saving Time

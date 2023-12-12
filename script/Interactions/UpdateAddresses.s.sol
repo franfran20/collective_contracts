@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {ICollectiveCore} from "../../src/interfaces/ICollectiveCore.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 import {CollectiveCoreAvalanche} from "../../src/CollectiveContracts/CollectiveCoreAvalanche.sol";
@@ -16,44 +16,40 @@ contract UpdateAddressesScript is Script {
     string POLYGON_CHAIN_NAME = "POLYGON";
 
     function run() external {
-        updateCollectiveCoreContractAddressForOtherChains_(AVALANCHE_CHAIN_NAME);
-        updateCollectiveCoreContractAddressForOtherChains_(OPTIMISM_CHAIN_NAME);
+        // updateCollectiveCoreContractAddressForOtherChains_(AVALANCHE_CHAIN_NAME);
+        // updateCollectiveCoreContractAddressForOtherChains_(OPTIMISM_CHAIN_NAME);
         updateCollectiveCoreContractAddressForOtherChains_(POLYGON_CHAIN_NAME);
     }
 
-    // collective core avalanche: 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce
-    // collective core optimism: 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37
-    // collective core polygon:0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831
+    // ALWAY RECENT
+    // collective core avalanche: 0x045E96Ab338B4BAC9B6B2F00DB25e1E6c91EC154
+    // collective core optimism: 0xf3e30B0891521D595247AEB48F72105A4434B09E
+    // collective core polygon: 0x5A067dFAd546993fd2C546c3e989e7f5eDd414F6
 
     function updateCollectiveCoreContractAddressForOtherChains_(string memory chainName) public {
         address collectiveAddress = getCollectiveAddress(chainName);
 
-        // address optimismContractAddress = 0x5cAb396eE29F70634EAad2C742A5cDAcE4E75A37;
-        // address polygonContractAddress = 0x4DaCd28de77660D2d0426b5aEC2c5cBfb8e73831;
-        // address avalancheContractAddress = 0xf301F2785c97Eaf119bf1F6C6c33DC8E073e97ce;
-
-        address optimismContractAddress =
-            DevOpsTools.get_most_recent_deployment("CollectiveCoreOptimism", block.chainid);
-        address polygonContractAddress = DevOpsTools.get_most_recent_deployment("CollectiveCorePolygon", block.chainid);
-        address avalancheContractAddress =
-            DevOpsTools.get_most_recent_deployment("CollectiveCoreAvalanche", block.chainid);
+      
+        // address avalancheContractAddress = 0x045E96Ab338B4BAC9B6B2F00DB25e1E6c91EC154;
+        // address optimismContractAddress = 0xf3e30B0891521D595247AEB48F72105A4434B09E;
+        // address polygonContractAddress = 0x5A067dFAd546993fd2C546c3e989e7f5eDd414F6;
 
         if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(AVALANCHE_CHAIN_NAME))) {
-            CollectiveCoreAvalanche collectiveCore = CollectiveCoreAvalanche(collectiveAddress);
+            CollectiveCoreAvalanche collectiveCore = CollectiveCoreAvalanche(avalancheContractAddress);
             vm.startBroadcast();
             collectiveCore.updateCollectiveCoreContractAddressForOtherChains_(
                 optimismContractAddress, polygonContractAddress
             );
             vm.stopBroadcast();
         } else if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(OPTIMISM_CHAIN_NAME))) {
-            CollectiveCoreOptimism collectiveCore = CollectiveCoreOptimism(collectiveAddress);
+            CollectiveCoreOptimism collectiveCore = CollectiveCoreOptimism(optimismContractAddress);
             vm.startBroadcast();
             collectiveCore.updateCollectiveCoreContractAddressForOtherChains_(
                 avalancheContractAddress, polygonContractAddress
             );
             vm.stopBroadcast();
         } else if (keccak256(abi.encodePacked(chainName)) == keccak256(abi.encodePacked(POLYGON_CHAIN_NAME))) {
-            CollectiveCorePolygon collectiveCore = CollectiveCorePolygon(collectiveAddress);
+            CollectiveCorePolygon collectiveCore = CollectiveCorePolygon(polygonContractAddress);
             vm.startBroadcast();
             collectiveCore.updateCollectiveCoreContractAddressForOtherChains_(
                 avalancheContractAddress, optimismContractAddress

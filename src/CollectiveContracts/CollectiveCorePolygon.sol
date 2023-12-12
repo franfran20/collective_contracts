@@ -599,6 +599,10 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
             s_UsdtBalances.Optimism += avaxBufferAmount;
         }
 
+        s_totalChainSavings.wOP -= userSavingBalance.wOP;
+        s_totalChainSavings.wAVAX -= userSavingBalance.wAVAX;
+        s_totalChainSavings.wMATIC -= userSavingBalance.wMATIC;
+
         _resetUserSavingsDetails(user);
 
         return (interestToAddToPool, avaxBufferAmount, opBufferAmount);
@@ -645,7 +649,7 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
             receiver: abi.encode(receiverContractAddress),
             data: encodedPayload,
             tokenAmounts: new Client.EVMTokenAmount[](0),
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 600_000})),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 800_000})),
             feeToken: address(s_linkToken)
         });
 
@@ -827,6 +831,11 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
 
             IERC20(s_wMATIC).transfer(user, maticToGiveUser);
         }
+
+        CrossChainAssets memory userBalances = s_savingsDetails[user].savingsBalance;
+        s_totalChainSavings.wAVAX -= userBalances.wAVAX;
+        s_totalChainSavings.wOP -= userBalances.wOP;
+        s_totalChainSavings.wMATIC -= userBalances.wMATIC;
 
         _resetUserSavingsDetails(user);
 
@@ -1070,16 +1079,6 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
         return s_savingsDetails[user];
     }
 
-    /// @notice getsthe cosmic provider details
-    function getCosmicProviderDetails(address cosmicProvider) public view returns (CosmicProvider memory) {
-        return s_cosmicProvider[cosmicProvider];
-    }
-
-    /// @notice gets the cosmic providers unlock period for withdrawal of deposited USDT
-    function getUnlockPeriod(address cosmicProvider) public view returns (uint256) {
-        return s_cosmicProvider[cosmicProvider].unlockPeriod;
-    }
-
     /// @notice gets the membership status of a user in a group saving
     function getUserMemebrshipStatus(uint256 groupID, address user) public view returns (bool) {
         return s_isMember[groupID][user];
@@ -1159,51 +1158,6 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
         return groupSavingDetails;
     }
 
-    ///@notice gets the group progres bar
-    function getGroupSavingCompletionPercentage(uint256 groupID) public view returns (uint256) {
-        GroupSavingDetails memory groupIDDetails = getGroupSavingDetailByID(groupID);
-        CrossChainAssets memory amountSaved = groupIDDetails.amountRaised;
-        CrossChainAssets memory target = groupIDDetails.target;
-
-        uint256 avaxPercentage;
-        uint256 opEthPercentage;
-        uint256 maticPercentage;
-
-        // Avax
-        if (amountSaved.wAVAX > 0) {
-            if (target.wAVAX > amountSaved.wAVAX * 100) {
-                avaxPercentage = 0;
-            } else {
-                avaxPercentage =
-                    ((amountSaved.wAVAX * 100) / target.wAVAX) > 100 ? 100 : ((amountSaved.wAVAX * 100) / target.wAVAX);
-            }
-        }
-
-        // Op eth
-        if (amountSaved.wOP > 0) {
-            if (target.wOP > amountSaved.wOP * 100) {
-                opEthPercentage = 0;
-            } else {
-                opEthPercentage =
-                    ((amountSaved.wOP * 100) / target.wOP) > 100 ? 100 : ((amountSaved.wOP * 100) / target.wOP);
-            }
-        }
-
-        // Matic
-        if (amountSaved.wMATIC > 0) {
-            if (target.wMATIC > amountSaved.wMATIC * 100) {
-                maticPercentage = 0;
-            } else {
-                maticPercentage = ((amountSaved.wMATIC * 100) / target.wMATIC) > 100
-                    ? 100
-                    : ((amountSaved.wAVAX * 100) / target.wAVAX);
-            }
-        }
-
-        uint256 percentage = (avaxPercentage + opEthPercentage + maticPercentage) / 3;
-        return percentage;
-    }
-
     /// @notice gets the group saving time left
     function getGroupSavingTimeLeft(uint256 groupID) public view returns (uint256) {
         GroupSavingDetails memory groupIDDetails = getGroupSavingDetailByID(groupID);
@@ -1237,10 +1191,6 @@ contract CollectiveCorePolygon is ICollectiveCore, CCIPReceiver {
         address avalancheContractAddress,
         address optimismContractAddress
     ) external {
-        // if (locked) {
-        //     revert CollectiveCore__CannotUpdateDestinationChainContractAddress();
-        // }
-        // locked = true;
         s_avalancheContractAddress = avalancheContractAddress;
         s_optimismContractAddress = optimismContractAddress;
     }

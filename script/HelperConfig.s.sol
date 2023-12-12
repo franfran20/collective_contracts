@@ -95,17 +95,18 @@ contract HelperConfig is Script {
     /////// LIVE NETWORK CONFIGS /////////
     /////////////////////////////////////
 
+
     /// avalanche config
     function getAvalancheEthConfig() public pure returns (LiveNetworkConfig memory) {
         LiveNetworkConfig memory avalancheNetworkConfig = LiveNetworkConfig({
-            wrappedAsset: 0xF142710c99dEB5a8b829Cea2dcE9e74dECA0ff8f,
+            wrappedAsset: 0x127e5F7dce0999f19c8eba6fc154e6c404FC7D95,
             router: 0xF694E193200268f9a4868e4Aa017A0118C9a8177,
             link: 0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846,
             avaxUsdPriceFeed: 0x34C4c526902d88a3Aa98DB8a9b802603EB1E3470, //link/usd
             opEthUsdPriceFeed: 0x7898AcCC83587C3C55116c5230C17a6Cd9C71bad, //usdt/usd
             maticUsdPriceFeed: 0xB0924e98CAFC880ed81F6A4cA63FD61006D1f8A0, //matic/usd
             usdt: 0x9F6e36A08315c6890FE402799176cd7748FcB695,
-            franfranSwap: 0x9BC69c6Ba84d0e118763cf999093be9e743947dD
+            franfranSwap: 0x08B895f719c1F13754453CA1E47A017D12CD9B44
         });
 
         return avalancheNetworkConfig;
@@ -114,14 +115,14 @@ contract HelperConfig is Script {
     /// optimism config
     function getOptimismEthConfig() public pure returns (LiveNetworkConfig memory) {
         LiveNetworkConfig memory optimismNetworkConfig = LiveNetworkConfig({
-            wrappedAsset: 0x9e7c5e367D41e44b4fEd1e6Ee683f7FefAe58E05,
+            wrappedAsset: 0xf816839642Fb1c652fD36f9881D242B54A3A9535,
             router: 0xcc5a0B910D9E9504A7561934bed294c51285a78D,
             link: 0xdc2CC710e42857672E7907CF474a69B63B93089f,
             avaxUsdPriceFeed: 0x69C5297001f38cCBE30a81359da06E5256bd28B9, //link/usd
             opEthUsdPriceFeed: 0x2e2147bCd571CE816382485E59Cd145A2b7CA451, //usdt/usd
             maticUsdPriceFeed: 0x11C944427B9ebeb1417Dd44645Ad04edBF33b95e, //matic/usd
             usdt: 0xEF53020fEb7b71E4B700531894991Cc7Ca553fb4,
-            franfranSwap: 0x9BC69c6Ba84d0e118763cf999093be9e743947dD
+            franfranSwap: 0x63Ec16553806549374ca88E1D6FA3aaC57414eA6
         });
 
         return optimismNetworkConfig;
@@ -130,14 +131,14 @@ contract HelperConfig is Script {
     /// Polygon config
     function getPolygonEthConfig() public pure returns (LiveNetworkConfig memory) {
         LiveNetworkConfig memory polygonNetworkConfig = LiveNetworkConfig({
-            wrappedAsset: 0x087fbaE066b76Ca42d48950D53c2F01A3daB0444,
+            wrappedAsset: 0x2eEDEA5e2900D08F3dD58640554DB08411F5d13F,
             router: 0x1035CabC275068e0F4b745A29CEDf38E13aF41b1,
             link: 0x326C977E6efc84E512bB9C30f76E30c160eD06FB,
             avaxUsdPriceFeed: 0x1C2252aeeD50e0c9B64bDfF2735Ee3C932F5C408, //link/usd
             opEthUsdPriceFeed: 0x92C09849638959196E976289418e5973CC96d645, //usdt/usd
             maticUsdPriceFeed: 0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada, //matic/usd
             usdt: 0xC88BDB5Dd8d18f847b85259329663AB6D3A0C367,
-            franfranSwap: 0x102f7733F9A4f8Bc884FC9DA55AC5C1d091b11F6
+            franfranSwap: 0x9f6b7BCF9D9ddc16EDdCb3Da2aAFBab01B9564E1
         });
 
         return polygonNetworkConfig;
@@ -167,7 +168,6 @@ contract HelperConfig is Script {
             MockContracts(avalancheAsset, optimismAsset, polygonAsset, router, aLink, oLink, pLink, aUsdt, oUsdt, pUsdt);
     }
 
-    /// used to set the deployment parameters for anvil
     function getOrCreateAnvilEthConfig() public returns (AnvilNetworkConfig memory) {
         MockContracts memory mockContracts = _deployMocks();
         SwapContracts memory swapContracts = _deploySwapContractsAndPriceFeedMocks(mockContracts);

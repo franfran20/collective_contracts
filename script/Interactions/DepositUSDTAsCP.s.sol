@@ -17,13 +17,14 @@ contract DepositUSDTAsCP is Script {
     string POLYGON_CHAIN_NAME = "POLYGON";
 
     // params
-    uint256 AMOUNT = 50e18;
+    uint256 AMOUNT = 20e18;
 
     function run() external {
         // depositUSDT(AMOUNT, AVALANCHE_CHAIN_NAME);
-        depositUSDT(AMOUNT, POLYGON_CHAIN_NAME);
         // depositUSDT(AMOUNT, OPTIMISM_CHAIN_NAME);
+        depositUSDT(AMOUNT, POLYGON_CHAIN_NAME);
     }
+
 
     function depositUSDT(uint256 amount, string memory chainName) public {
         address collectiveAddress = getCollectiveAddress(chainName);

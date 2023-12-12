@@ -16,7 +16,7 @@ contract DispatchGroupFundsScript is Script {
     uint256 GROUP_ID = 2;
 
     function run() external {
-        //
+        
         dispatchGroupFundsToRecipient(GROUP_ID, AVALANCHE_CHAIN_NAME);
     }
 
