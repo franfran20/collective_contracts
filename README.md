@@ -75,7 +75,7 @@ Providers deposit USDT into contracts, earning IOU-USDT equivalents, which can b
 - [Live Website](https://collective-frontend-4w6z.vercel.app/)
 - [Smart Contracts Repo](https://github.com/franfran20/collective_contracts)
 - [Frontend Repo](https://github.com/franfran20/collective_frontend)
-- [Quick Video Demo](https://youtu.be/sXci_WZHPF0)
+- [Quick Video Demo](https://youtu.be/0YtwseO8bhg)
 
 #### Little Extra Notes
 
